@@ -1,4 +1,5 @@
 defmodule PokerMind do
+  use Boundary, deps: [], exports: []
   @moduledoc """
   PokerMind keeps the contexts that define your domain
   and business logic.

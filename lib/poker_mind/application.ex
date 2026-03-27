@@ -3,6 +3,7 @@ defmodule PokerMind.Application do
   # for more information on OTP Applications
   @moduledoc false
 
+  use Boundary, top_level?: true, deps: [PokerMind, PokerMindWeb]
   use Application
 
   @impl true
