@@ -56,7 +56,8 @@ defmodule PokerMind.MixProject do
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       {:boundary, "~> 0.10.4"},
-      {:mix_test_watch, "~> 1.4.0", only: [:dev, :test], runtime: false}
+      {:mix_test_watch, "~> 1.4.0", only: [:dev, :test], runtime: false},
+      {:kino, "~> 0.19.0", runtime: Mix.env() == :dev}
     ]
   end
 
