@@ -48,10 +48,11 @@ defmodule PokerMind.Engine.TableState do
     suits = [:hearts, :diamonds, :clubs, :spades]
     ranks = [2, 3, 4, 5, 6, 7, 8, 9, 10, :jack, :queen, :king, :ace]
 
-    deck = for suit <- suits, rank <- ranks do
-      %{rank: rank, suit: suit}
-    end
-    |> Enum.shuffle()
+    deck =
+      for suit <- suits, rank <- ranks do
+        %{rank: rank, suit: suit}
+      end
+      |> Enum.shuffle()
 
     table_state
     |> Map.put(:deck, deck)

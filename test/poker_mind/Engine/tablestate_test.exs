@@ -19,7 +19,7 @@ defmodule PokerMind.Engine.TableStateTest do
     assert Enum.count(state.players) == 4
 
     # The deck is initialized in which each player has been dealt two cards
-    assert Enum.count(state.deck) == 52 - 2*Enum.count(state.players)
+    assert Enum.count(state.deck) == 52 - 2 * Enum.count(state.players)
   end
 
   test "deal_cards/1 - each player gets two seprate cards from the deck", %{state: state} do
@@ -29,6 +29,7 @@ defmodule PokerMind.Engine.TableStateTest do
 
     # Check that dealt cards have been removed from the deck
     dealt_cards = Enum.flat_map(state.players, fn player -> player.cards end)
+
     for card <- dealt_cards do
       assert !Enum.member?(state.deck, card)
     end
