@@ -16,7 +16,7 @@ defmodule PokerMind.Engine.TableStateTest do
     num_of_players = Enum.count(init_state.players)
     assert num_of_players == 4
 
-    assert init_state.deck |> Enum.count() == 52 - 2*num_of_players
+    assert Enum.count(init_state.deck) == 52 - 2*num_of_players
 
     player_cards = for player <- init_state.players do
       player.cards
