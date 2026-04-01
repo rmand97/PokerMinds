@@ -1,4 +1,4 @@
-defmodule PokerMind.TableState do
+defmodule PokerMind.Engine.TableState do
   @enforce_keys [:id, :phase, :players, :pot, :deck, :community_cards]
   defstruct [
     :id,              # table-id
