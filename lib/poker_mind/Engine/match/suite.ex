@@ -2,8 +2,6 @@ defmodule PokerMind.Engine.Match.Suite do
   alias PokerMind.Engine
   use Supervisor
 
-  defstruct [:id]
-
   def start_link(%{id: suite_id} = init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: Engine.Registry.via("S#{suite_id}"))
   end
