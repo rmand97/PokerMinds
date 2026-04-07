@@ -35,7 +35,9 @@ defmodule PokerMind.Engine.TableStateTest do
     end
   end
 
-  test "set_blinds/1 - a player is chosen as big blind and the next player is current player", %{state: state} do
+  test "set_blinds/1 - a player is chosen as big blind and the next player is current player", %{
+    state: state
+  } do
     assert Enum.member?(state.players, state.big_blind)
 
     index_bb = Enum.find_index(state.players, fn p -> p == state.big_blind end)
