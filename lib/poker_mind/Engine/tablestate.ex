@@ -14,7 +14,7 @@ defmodule PokerMind.Engine.TableState do
     # cards on the table
     :community_cards,
     # big blind
-    :big_blind,
+    :small_blind,
     # whose turn
     :current_player,
     # bet to match
@@ -47,17 +47,26 @@ defmodule PokerMind.Engine.TableState do
   end
 
   defp set_blinds(table_state) do
-    big_blind = advance_player(table_state, Enum.random(table_state.players))
-    current_player = advance_player(table_state, big_blind)
+    small_blind = Enum.random(table_state.players)
 
     table_state
-    |> Map.put(:big_blind, big_blind)
-    |> Map.put(:current_player, current_player)
+    |> Map.put(:small_blind, small_blind)
+    |> advance_player(:current_player, small_blind)
+    |> advance_player()
   end
 
-  defp advance_player(table_state, from_player) do
+  def advance_player(table_state, key \\ :current_player, player \\ nil) do
+    from_player =
+      case player do
+        nil -> table_state.current_player
+        player -> player
+      end
+
     index = Enum.find_index(table_state.players, fn p -> p == from_player end)
-    Enum.at(table_state.players, rem(index + 1, length(table_state.players)))
+    next_player = Enum.at(table_state.players, rem(index + 1, length(table_state.players)))
+
+    table_state
+    |> Map.put(key, next_player)
   end
 
   defp new_deck(table_state) do
