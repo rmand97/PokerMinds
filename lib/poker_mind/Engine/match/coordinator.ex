@@ -55,6 +55,7 @@ defmodule PokerMind.Engine.Match.Coordinator do
     {:reply, state, state}
   end
 
+  # separator for catching all calls for when `all_games_ready` is false
   @impl true
   def handle_call(_, _from, %{all_games_ready: false} = state) do
     {:reply, {:error, :not_ready}, state}
