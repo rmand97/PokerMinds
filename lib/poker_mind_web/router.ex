@@ -20,10 +20,12 @@ defmodule PokerMindWeb.Router do
     get "/", PageController, :home
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", PokerMindWeb do
-  #   pipe_through :api
-  # end
+  scope "/api", PokerMindWeb do
+    pipe_through :api
+
+    get "/next_games", GameController, :next_games
+    post "/action", GameController, :perform_action
+  end
 
   # Enable LiveDashboard in development
   if Application.compile_env(:poker_mind, :dev_routes) do
