@@ -1,0 +1,23 @@
+info:
+  name: POST /action
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: http://localhost:4000/api/action
+  body:
+    type: json
+    data: |-
+      {
+        "player_id": "stine",
+        "game_id": "123",
+        "action": "call"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

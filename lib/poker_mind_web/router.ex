@@ -14,16 +14,12 @@ defmodule PokerMindWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/", PokerMindWeb do
-    pipe_through :browser
+  scope "/api", PokerMindWeb do
+    pipe_through :api
 
-    get "/", PageController, :home
+    get "/next_games", GameController, :next_games
+    post "/action", GameController, :perform_action
   end
-
-  # Other scopes may use custom stacks.
-  # scope "/api", PokerMindWeb do
-  #   pipe_through :api
-  # end
 
   # Enable LiveDashboard in development
   if Application.compile_env(:poker_mind, :dev_routes) do
