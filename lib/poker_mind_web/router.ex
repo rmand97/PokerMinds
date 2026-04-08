@@ -14,12 +14,6 @@ defmodule PokerMindWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/", PokerMindWeb do
-    pipe_through :browser
-
-    get "/", PageController, :home
-  end
-
   scope "/api", PokerMindWeb do
     pipe_through :api
 
