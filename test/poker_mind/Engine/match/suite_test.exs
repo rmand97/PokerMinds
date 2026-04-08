@@ -1,37 +1,35 @@
 defmodule PokerMind.Engine.Match.SuiteTest do
-  use ExUnit.Case, async: false
-
+  use ExUnit.Case, async: true
+  alias PokerMind.Engine.Match.Coordinator
+  alias PokerMind.Engine.Match.Game
   alias PokerMind.Engine.Match.Supervisor, as: MatchSupervisor
 
-  describe "PokerMind.Engine.Match.Suite" do
-    test "has 3 children (1 coordinator + 2 games)" do
-      assert {:ok, pid, _id} = MatchSupervisor.start_match_suite()
+  describe "Suite Tests" do
+    test "has 11 children (1 coordinator + 10 games)" do
+      assert {:ok, pid, id} = MatchSupervisor.start_match_suite("suite1")
+      on_exit(fn -> MatchSupervisor.close_match_suite(id) end)
 
       children = Supervisor.which_children(pid)
-      assert length(children) == 3
+      assert length(children) == 11
+
+      assert Enum.count(children, fn {{module, _name}, _pid, _type, [module]} ->
+               module == Coordinator
+             end) == 1
+
+      assert Enum.count(children, fn {{module, _name}, _pid, _type, [module]} ->
+               module == Game
+             end) == 10
     end
 
     test "coordinator is registered in the registry" do
-      assert {:ok, _suite_pid, id} = MatchSupervisor.start_match_suite()
+      assert {:ok, _suite_pid, id} = MatchSupervisor.start_match_suite("suite2")
+      on_exit(fn -> MatchSupervisor.close_match_suite(id) end)
 
       assert [{coordinator_pid, nil}] =
-               Registry.lookup(PokerMind.Engine.Registry, "S#{id}-Coordinator")
+               Registry.lookup(PokerMind.Engine.Registry, Coordinator.id(id))
 
       assert is_pid(coordinator_pid)
       assert Process.alive?(coordinator_pid)
-    end
-
-    test "game processes are started as workers" do
-      assert {:ok, _suite_pid, id} = MatchSupervisor.start_match_suite()
-
-      assert [{g0_pid, nil}] = Registry.lookup(PokerMind.Engine.Registry, "S#{id}-G0")
-      assert [{g1_pid, nil}] = Registry.lookup(PokerMind.Engine.Registry, "S#{id}-G1")
-
-      assert is_pid(g0_pid)
-      assert is_pid(g1_pid)
-      assert Process.alive?(g0_pid)
-      assert Process.alive?(g1_pid)
-      assert g0_pid != g1_pid
     end
   end
 end

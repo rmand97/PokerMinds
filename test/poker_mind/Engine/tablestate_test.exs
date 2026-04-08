@@ -1,7 +1,8 @@
 defmodule PokerMind.Engine.TableStateTest do
+  use ExUnit.Case, async: true
   alias PokerMind.Engine.TableState
   alias PokerMind.Engine.TableState.PlayerState
-  use ExUnit.Case, async: true
+  alias PokerMind.Engine.TableState
 
   setup do
     players =

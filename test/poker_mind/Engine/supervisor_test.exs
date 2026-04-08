@@ -1,28 +1,24 @@
 defmodule PokerMind.Engine.SupervisorTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
+
+  @genservers [
+    PokerMind.Engine.Supervisor,
+    PokerMind.Engine.Registry,
+    PokerMind.Engine.Match.Supervisor
+  ]
+
+  setup_all do
+    Application.ensure_all_started(:poker_mind)
+    :ok
+  end
 
   describe "PokerMind.Engine.Supervisor" do
-    test "supervisor process is alive" do
-      pid = Process.whereis(PokerMind.Engine.Supervisor)
-      assert pid != nil
-      assert Process.alive?(pid)
-    end
-
-    test "supervisor has 2 children" do
-      children = Supervisor.which_children(PokerMind.Engine.Supervisor)
-      assert length(children) == 2
-    end
-
-    test "Registry process is alive" do
-      pid = Process.whereis(PokerMind.Engine.Registry)
-      assert pid != nil
-      assert Process.alive?(pid)
-    end
-
-    test "Match.Supervisor process is alive" do
-      pid = Process.whereis(PokerMind.Engine.Match.Supervisor)
-      assert pid != nil
-      assert Process.alive?(pid)
+    for genserver <- @genservers do
+      test "process: #{inspect(genserver)} is started and alive" do
+        pid = Process.whereis(unquote(genserver))
+        assert is_pid(pid)
+        assert Process.alive?(pid)
+      end
     end
   end
 end

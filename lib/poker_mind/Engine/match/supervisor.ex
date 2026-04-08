@@ -1,5 +1,6 @@
 defmodule PokerMind.Engine.Match.Supervisor do
   use DynamicSupervisor
+  alias PokerMind.Engine.Match.Suite
 
   def start_link(init_arg) do
     DynamicSupervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -10,13 +11,17 @@ defmodule PokerMind.Engine.Match.Supervisor do
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 
-  def start_match_suite() do
-    id = to_string(:rand.uniform(1000))
-
-    DynamicSupervisor.start_child(__MODULE__, {PokerMind.Engine.Match.Suite, %{id: id}})
+  def start_match_suite(suite_id, num_games \\ 10) do
+    DynamicSupervisor.start_child(__MODULE__, {Suite, id: suite_id, num_games: num_games})
     |> case do
-      {:ok, pid} -> {:ok, pid, id}
+      {:ok, pid} -> {:ok, pid, suite_id}
       error -> error
     end
+  end
+
+  def close_match_suite(suite_id) do
+    [suite_data] = Registry.lookup(PokerMind.Engine.Registry, suite_id)
+    suite_pid = elem(suite_data, 0)
+    DynamicSupervisor.terminate_child(__MODULE__, suite_pid)
   end
 end

@@ -1,10 +1,19 @@
 defmodule PokerMind.Engine.Match.Game do
   alias PokerMind.Engine
+  alias PokerMind.Engine.Match.Coordinator
   use GenServer
 
   def start_link(opts) do
     name = Keyword.fetch!(opts, :name)
     GenServer.start_link(__MODULE__, opts, name: Engine.Registry.via(name))
+  end
+
+  def get_state(game_id) do
+    GenServer.call(Engine.Registry.via(game_id), :get_state)
+  end
+
+  def apply_action(game_id, action, player) do
+    GenServer.call(Engine.Registry.via(game_id), {:apply_action, action, player})
   end
 
   @impl true
@@ -13,25 +22,32 @@ defmodule PokerMind.Engine.Match.Game do
     name = Keyword.fetch!(init_args, :name)
     Process.set_label(name)
 
-    {:ok, %{coordinator_id: coordinator_id}, {:continue, :notify_coordinator}}
+    # TODO: put gamestate
+    game = %{}
+
+    {:ok, %{coordinator_id: coordinator_id, id: name, game: game},
+     {:continue, :notify_coordinator}}
+  end
+
+  def id(suite_id, game_num) do
+    "#{suite_id}-#{game_num}"
   end
 
   @impl true
   def handle_continue(:notify_coordinator, state) do
-    starting_player = "rolf"
-    GenServer.cast(Engine.Registry.via(state.coordinator_id), {:ready, starting_player})
+    starting_player = to_string(:rand.uniform(1000))
+
+    Coordinator.register_game_ready(state.coordinator_id, state.id, starting_player)
     {:noreply, state}
   end
 
-  # Game code
+  @impl true
+  def handle_call({:apply_action, _action, _player}, _from, state) do
+    {:reply, :ok, state}
+  end
 
-  defstruct [:players, :id]
-
-  def add_player(%__MODULE__{} = gamestate, new_player) do
-    current_players = gamestate.players
-
-    updated_players = [new_player | current_players]
-
-    Map.put(gamestate, :players, updated_players)
+  @impl true
+  def handle_call(:get_state, _from, state) do
+    {:reply, state.game, state}
   end
 end
