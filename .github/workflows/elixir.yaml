@@ -21,6 +21,9 @@ jobs:
                 otp: ["28.4.1"]
                 elixir: ["1.19.5"]
         steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
             - name: Setup Elixir
               uses: ./.github/actions/setup-elixir
               with:

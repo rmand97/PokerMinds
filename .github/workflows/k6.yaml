@@ -21,6 +21,9 @@ jobs:
         name: k6 Performance Tests
 
         steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
             - name: Setup Elixir
               uses: ./.github/actions/setup-elixir
               with:
