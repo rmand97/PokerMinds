@@ -12,4 +12,4 @@ jobs:
         steps:
             - name: Trigger deployment webhook
               run: |
-                  curl --fail -X GET "${{ secrets.COOLIFY_WEBHOOK_URL }}"
+                  curl --fail -X GET "${{ secrets.COOLIFY_WEBHOOK_URL }}" -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}"
