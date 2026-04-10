@@ -16,7 +16,7 @@ defmodule PokerMindWeb.GameController do
     # TODO: Filter what information the player gets
     mapped_games =
       Enum.map(games, fn game ->
-        map_tablestate(game)
+        map_tablestate(game, player_id)
       end)
 
     json(conn, %{data: mapped_games})
@@ -35,7 +35,7 @@ defmodule PokerMindWeb.GameController do
       }) do
     case Game.apply_action(game_id, action, player_id) do
       {:ok, state} ->
-        mapped_state = %{state | game: map_tablestate(state.game)}
+        mapped_state = %{state | game: map_tablestate(state.game, player_id)}
         json(conn, %{data: mapped_state})
 
       {:error, reason} ->
@@ -57,12 +57,36 @@ defmodule PokerMindWeb.GameController do
   end
 
   # TODO: This is a draft
-  defp map_playerstate(%PlayerState{} = player) do
-    %{player_id: player.id}
+  defp map_playerstate_own(%PlayerState{} = player) do
+    %{
+      player_id: player.player_id,
+      current_hand: player.current_hand,
+      remaining_chips: player.remaining_chips,
+      player_state: player.player_state,
+      has_acted: player.has_acted
+    }
   end
 
-  defp map_tablestate(%TableState{} = tablestate) do
-    players = Enum.map(tablestate.players, fn player -> map_playerstate(player) end)
-    %{id: tablestate.id, players: players}
+  defp map_tablestate(%TableState{} = tablestate, player_id) do
+    player =
+      tablestate.players
+      |> Enum.find(fn player -> player.player_id == player_id end)
+      |> map_playerstate_own()
+
+    other_players =
+      tablestate.players
+      |> Enum.filter(fn player -> player.player_id != player_id end)
+      |> Enum.map(fn player -> map_playerstate_others(player) end)
+
+    %{
+      id: tablestate.id,
+      player: player,
+      other_players: other_players,
+      phase: tablestate.phase,
+      pot: tablestate.pot,
+      community_cards: tablestate.community_cards,
+      current_player: tablestate.current_player.player_id,
+      current_bet: tablestate.current_bet
+    }
   end
 end

@@ -1,17 +1,13 @@
 defmodule PokerMind.Engine.Match.GameControllerTest do
   use PokerMindWeb.ConnCase, async: true
   alias PokerMind.Engine.Match.Game
-  alias PokerMind.Engine.TableState.PlayerState
   alias PokerMindWeb.MatchSupport
   alias PokerMind.Engine.Match.Supervisor, as: MatchSupervisor
 
   test "GET /api/next_games with player_id and suite_id", %{conn: conn} do
     suite_id = "S1"
     num_games = 10
-
-    players = [
-      "rolf"
-    ]
+    players = ["rolf"]
 
     {:ok, _pid, suite_id} = MatchSupport.start_match_suite!(suite_id, players, num_games)
     on_exit(fn -> MatchSupervisor.close_match_suite(suite_id) end)
@@ -50,7 +46,17 @@ defmodule PokerMind.Engine.Match.GameControllerTest do
 
     assert %{"data" => state} = json_response(conn, 200)
     # TODO: game is empty
-    # assert state["game"] == %{}
+    assert Map.keys(state["game"]) == [
+             "community_cards",
+             "current_bet",
+             "current_player",
+             "id",
+             "other_players",
+             "phase",
+             "player",
+             "pot"
+           ]
+
     assert state["id"] == game_id
   end
 
