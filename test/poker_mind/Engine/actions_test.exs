@@ -1,7 +1,6 @@
 defmodule PokerMind.Engine.ActionsTest do
   use ExUnit.Case, async: true
   alias PokerMind.Engine.TableState
-  alias PokerMind.Engine.TableState.PlayerState
   alias PokerMind.Engine.Actions
 
   setup do
@@ -13,9 +12,9 @@ defmodule PokerMind.Engine.ActionsTest do
 
   test "fold action", %{state: init_state} do
     # get current player
-    assert init_state.current_player != nil
-    player_who_is_folding = init_state.current_player.id
-    # assert init_state.small_blind +2  == init_state.current_player
+    assert init_state.current_player_id != nil
+    player_who_is_folding = init_state.current_player_id
+    # assert init_state.small_blind +2  == init_state.current_player_id
 
     # Check that current player is in players list and "active_in_hand"
     assert Enum.any?(
@@ -26,7 +25,7 @@ defmodule PokerMind.Engine.ActionsTest do
            )
 
     # apply fold action to current player
-    new_state = Actions.apply_action(init_state, :fold, init_state.current_player.id)
+    new_state = Actions.apply_action(init_state, :fold, init_state.current_player_id)
 
     # Have the player succesfully folded?
     folded_player =
@@ -40,7 +39,7 @@ defmodule PokerMind.Engine.ActionsTest do
     assert unchanged_players == original_others
 
     # Turn has advanced — new current player is not the one who folded
-    assert new_state.current_player != player_who_is_folding
+    assert new_state.current_player_id != player_who_is_folding
 
     # Pot size is unchanged — folding doesn't affect the pot
     assert new_state.pot == init_state.pot
@@ -57,16 +56,22 @@ defmodule PokerMind.Engine.ActionsTest do
   #   # pre player still "active"
   # end
 
-  # test "check action", %{state: init_state} do
-  #   # get current player
-  #   # apply check action to current player
+  test "check action", %{state: init_state} do
+    starting_player = init_state.current_player_id
 
-  #   # Pot size the same
-  #   # Player stack the same
+    new_state = Actions.apply_action(init_state, :check, starting_player)
 
-  #   # new current player
-  #   # pre player still "active"
-  # end
+    assert Enum.any?(new_state.players, &(&1.id == starting_player and &1.has_acted))
+    assert starting_player != new_state.current_player_id
+    # get current player
+    # apply check action to current player
+
+    # Pot size the same
+    # Player stack the same
+
+    # new current player
+    # pre player still "active"
+  end
 
   # test "raise action", %{state: init_state} do
   #   # get current player
