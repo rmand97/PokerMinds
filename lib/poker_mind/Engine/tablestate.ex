@@ -152,18 +152,22 @@ defmodule PokerMind.Engine.TableState do
   def set_current_player_for_phase(%__MODULE__{} = state) do
     start_from =
       case state.phase do
+        # if pre_flop bb+1 goes first. if he is inactive -> pick next active
         :pre_flop ->
           after_small_blind = find_next_active_player(state, state.small_blind)
           after_big_blind = find_next_active_player(state, after_small_blind)
           after_big_blind
 
         _post_flop ->
+          # in any other case/phase sb goes first. if he is inactive -> pick next active
           state.small_blind
       end
 
+    # check if inactive pick next active
     start_from =
       if start_from.state == :active_in_hand do
         start_from
+        # if inactive pick next active
       else
         find_next_active_player(state, start_from)
       end
@@ -183,19 +187,20 @@ defmodule PokerMind.Engine.TableState do
   end
 
   def find_next_active_player(%__MODULE__{players: players}, from_player) do
-    players_to_consider = how_the_turn_tables(players, from_player)
+    players_to_consider = acting_order_from(players, from_player)
 
     players_to_consider
     |> Enum.find(fn player -> player.state == :active_in_hand end)
   end
 
-  defp how_the_turn_tables(players, from_player) do
+  defp acting_order_from(players, from_player) do
     # Where is from_player in list
-
     start = Enum.find_index(players, fn player -> player.id == from_player.id end)
 
+    # Split list and remove from_player
     {first_list, [_from_player | second_list]} = Enum.split(players, start)
 
+    # order rest of players in turn order
     second_list ++ first_list
   end
 end
