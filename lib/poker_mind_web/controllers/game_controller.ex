@@ -13,10 +13,9 @@ defmodule PokerMindWeb.GameController do
       coordinator_id
       |> Coordinator.next_games(player_id)
 
-    # TODO: Filter what information the player gets
     mapped_games =
       Enum.map(games, fn game ->
-        map_tablestate(game)
+        map_tablestate(game, player_id)
       end)
 
     json(conn, %{data: mapped_games})
@@ -35,7 +34,7 @@ defmodule PokerMindWeb.GameController do
       }) do
     case Game.apply_action(game_id, action, player_id) do
       {:ok, state} ->
-        mapped_state = %{state | game: map_tablestate(state.game)}
+        mapped_state = %{state | game: map_tablestate(state.game, player_id)}
         json(conn, %{data: mapped_state})
 
       {:error, reason} ->
@@ -57,12 +56,41 @@ defmodule PokerMindWeb.GameController do
   end
 
   # TODO: This is a draft
-  defp map_playerstate(%PlayerState{} = player) do
-    %{player_id: player.id}
+  defp map_playerstate(%PlayerState{} = player, calling_player_id) do
+    mapped_player_state = %{
+      id: player.id,
+      remaining_chips: player.remaining_chips,
+      player_state: player.state,
+      has_acted: player.has_acted
+    }
+
+    if player.id == calling_player_id do
+      Map.put(mapped_player_state, :current_hand, player.current_hand)
+    else
+      mapped_player_state
+    end
   end
 
-  defp map_tablestate(%TableState{} = tablestate) do
-    players = Enum.map(tablestate.players, fn player -> map_playerstate(player) end)
-    %{id: tablestate.id, players: players}
+  defp map_tablestate(%TableState{} = tablestate, player_id) do
+    player =
+      tablestate.players
+      |> Enum.find(fn player -> player.id == player_id end)
+      |> map_playerstate(player_id)
+
+    other_players =
+      tablestate.players
+      |> Enum.filter(fn player -> player.id != player_id end)
+      |> Enum.map(fn player -> map_playerstate(player, player_id) end)
+
+    %{
+      id: tablestate.id,
+      player: player,
+      other_players: other_players,
+      phase: tablestate.phase,
+      pot: tablestate.pot,
+      community_cards: tablestate.community_cards,
+      current_player: tablestate.current_player.id,
+      current_bet: tablestate.current_bet
+    }
   end
 end
