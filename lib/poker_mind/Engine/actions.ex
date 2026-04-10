@@ -1,5 +1,6 @@
-defmodule PokerMind.Actions do
+defmodule PokerMind.Engine.Actions do
   alias PokerMind.Engine.TableState
+  alias PokerMind.Engine.TableState.PlayerState
 
   # def apply_action(%TableState{} = state, {:raise, amount}, player_id) do
   #   with :ok <- validate_turn(player_id) do
@@ -12,17 +13,12 @@ defmodule PokerMind.Actions do
   #   end
   # end
 
-  def apply_action(%TableState{} = state, :fold, player_id) do
-    with :ok <- validate_turn(player_id) do
+  def apply_action(%TableState{} = state, :fold, player_id) when is_binary(player_id) do
+    with :ok <- validate_turn(state, player_id) do
       state
-      |> set_player_state(InactiveInHand)
+      |> TableState.set_player_value(player_id, :state, :inactive_in_hand)
       |> advance_player_turn(:fold)
     end
-  end
-
-  defp set_player_state(%TableState{} = state, new_player_state) do
-    # get state.current_player
-    # set current.player.player_state = new_player_state
   end
 
   # def apply_action(%TableState{} = state, :call, amount, player_id) do
@@ -48,13 +44,14 @@ defmodule PokerMind.Actions do
   #     #TODO handle invalid action call
   # end
 
-  # defp validate_turn(player_id) do
-  #   if player_id != TableState.current_player() do
-  #     {:error, {:action_out_of_turn, "player_id != current_player - its not your turn"}}
-  #   else
-  #     :ok
-  #   end
-  # end
+  # move to table state
+  defp validate_turn(state, player_id) when is_binary(player_id) do
+    if player_id != state.current_player.id do
+      {:error, {:action_out_of_turn, "player_id != current_player - its not your turn"}}
+    else
+      :ok
+    end
+  end
 
   # pseudo kode #TODO
   # defp validate_raise(player_id, amount \\ 0) do
@@ -94,19 +91,17 @@ defmodule PokerMind.Actions do
   # end
 
   # TODO
-  defp advance_player_turn(%TableState{} = state) do
-    # Check if any players have yet to act
+  defp advance_player_turn(%TableState{} = state, _action) do
+    if TableState.round_complete?(state) do
+      next_phase = TableState.next_phase(state.phase)
 
-    # increment player turn to any of those players
-    next_state = advance_player()
-
-    # check new current player state
-    new_current_player.player_state = ActiveInHand && has(not acted(yet))
-    state.advance_player()
-
-    # of course right to act resets if anyone bets
-
-    # if no more player_turns
-    state.advance_phase(current_phase)
+      state
+      |> PlayerState.reset_has_acted()
+      |> TableState.advance_phase(next_phase)
+      |> TableState.set_current_player_for_phase()
+    else
+      next = TableState.find_next_active_player(state, state.current_player)
+      %{state | current_player: next}
+    end
   end
 end
