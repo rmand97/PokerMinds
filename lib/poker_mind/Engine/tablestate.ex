@@ -23,7 +23,7 @@ defmodule PokerMind.Engine.TableState do
     :current_bet
   ]
 
-  def new(id) do
+  def new(id) when is_binary(id) do
     %__MODULE__{id: id, phase: :pre_flop, players: [], pot: 0, deck: [], community_cards: []}
   end
 
@@ -43,7 +43,7 @@ defmodule PokerMind.Engine.TableState do
     initialize_players(add_player(state, first_player), rest)
   end
 
-  defp add_player(%__MODULE__{} = state, new_player_id)
+  defp add_player(%__MODULE__{} = state, new_player_id) when is_binary(new_player_id)
        when is_list(state.players) do
     # TODO: remaining_chips is hardcoded to 100
     Map.put(state, :players, [
