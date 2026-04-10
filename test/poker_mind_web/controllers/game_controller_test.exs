@@ -1,12 +1,11 @@
 defmodule PokerMind.Engine.Match.GameControllerTest do
   use PokerMindWeb.ConnCase, async: true
   alias PokerMind.Engine.Match.Game
-  alias PokerMind.Engine.TableState.PlayerState
   alias PokerMindWeb.MatchSupport
   alias PokerMind.Engine.Match.Supervisor, as: MatchSupervisor
 
   test "GET /api/next_games with player_id and suite_id", %{conn: conn} do
-    suite_id = "S1"
+    suite_id = UUID.uuid4()
     num_games = 10
 
     players = [
@@ -31,7 +30,7 @@ defmodule PokerMind.Engine.Match.GameControllerTest do
   end
 
   test "POST /api/action with player_id, game_id and action", %{conn: conn} do
-    suite_id = "S2"
+    suite_id = UUID.uuid4()
     game_id = Game.id(suite_id, 1)
 
     players = [
