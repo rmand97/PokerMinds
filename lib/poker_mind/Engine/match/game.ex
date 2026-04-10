@@ -37,7 +37,12 @@ defmodule PokerMind.Engine.Match.Game do
 
   @impl true
   def handle_continue(:notify_coordinator, state) do
-    Coordinator.register_game_ready(state.coordinator_id, state.id, state.game.current_player.player_id)
+    Coordinator.register_game_ready(
+      state.coordinator_id,
+      state.id,
+      state.game.current_player.player_id
+    )
+
     {:noreply, state}
   end
 
