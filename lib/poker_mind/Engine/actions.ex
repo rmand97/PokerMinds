@@ -35,9 +35,6 @@ defmodule PokerMind.Engine.Actions do
       player = Enum.find(state.players, &(&1.id == player_id))
 
       cond do
-        player.has_acted ->
-          {:error, {:check_not_possible, "Can't check in current position"}}
-
         state.highest_raise != player.current_bet ->
           {:error, {:something, "something"}}
 
@@ -54,10 +51,17 @@ defmodule PokerMind.Engine.Actions do
 
   # move to table state
   defp validate_turn(state, player_id) when is_binary(player_id) do
-    if player_id != state.current_player_id do
-      {:error, {:action_out_of_turn, "player_id != current_player - its not your turn"}}
-    else
-      :ok
+    player = Enum.find(state.players, &(&1.id == player_id))
+
+    cond do
+      player_id != state.current_player_id ->
+        {:error, {:action_out_of_turn, "player_id != current_player - its not your turn"}}
+
+      player.has_acted ->
+        {:error, {:not_possible, "Can't act in current position"}}
+
+      true ->
+        :ok
     end
   end
 
