@@ -19,8 +19,9 @@ defmodule PokerMind.Engine.TableState do
     :small_blind_id,
     # whose turn
     :current_player_id,
-    # bet to match
+    # bet to match on current betting round
     :highest_raise,
+    # TODO: Check if we can YEEEEET
     # The player who was first to act or
     # The player who bet to reset option
     :action_started_at
@@ -149,7 +150,7 @@ defmodule PokerMind.Engine.TableState do
   end
 
   def set_current_player_for_phase(%__MODULE__{} = state) do
-    start_from =
+    start_from_id =
       case state.phase do
         # if pre_flop bb+1 goes first. if he is inactive -> pick next active
         :pre_flop ->
@@ -162,16 +163,18 @@ defmodule PokerMind.Engine.TableState do
           state.small_blind_id
       end
 
+    start_from_player = get_player(state, start_from_id)
+
     # check if inactive pick next active
-    start_from =
-      if start_from.state == :active_in_hand do
-        start_from
+    start_from_player =
+      if start_from_player.state == :active_in_hand do
+        start_from_player
         # if inactive pick next active
       else
-        find_next_active_player(state, start_from)
+        find_next_active_player(state, start_from_player)
       end
 
-    %{state | current_player_id: start_from.id, action_started_at: start_from.id}
+    %{state | current_player_id: start_from_player.id, action_started_at: start_from_player.id}
   end
 
   def round_complete?(%__MODULE__{players: players}) do
@@ -214,5 +217,9 @@ defmodule PokerMind.Engine.TableState do
       ],
       fn _current_value -> true end
     )
+  end
+
+  def get_player(%__MODULE__{} = state, player_id) when is_binary(player_id) do
+    Enum.find(state.players, &(&1.id == player_id))
   end
 end
