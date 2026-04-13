@@ -52,7 +52,7 @@ defmodule PokerMind.Engine.TableState.PlayerState do
     update_in(
       state,
       [Access.key(:players), Access.find(&(&1.id == player_id)), Access.key(:current_bet)],
-      fn current_bet -> current_bet + amount end
+      fn _ -> amount end
     )
   end
 end
