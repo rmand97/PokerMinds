@@ -234,9 +234,11 @@ defmodule PokerMind.Engine.TableState do
 
   def add_to_pot(%__MODULE__{} = state, player_id, amount)
       when is_integer(amount) and amount > 0 do
+    amount_difference = amount - get_player(state, player_id).current_bet
+
     state
-    |> PlayerState.deduct_chips(player_id, amount)
+    |> PlayerState.deduct_chips(player_id, amount_difference)
     |> PlayerState.update_current_bet(player_id, amount)
-    |> Map.put(:pot, state.pot + amount)
+    |> Map.put(:pot, state.pot + amount_difference)
   end
 end

@@ -116,13 +116,19 @@ defmodule PokerMind.Engine.TableStateTest do
        %{
          state: state
        } do
+    player1 = "stine"
+    player2 = "rolf"
+
     updated_state =
       state
-      |> TableState.add_to_pot("stine", 20)
-      |> TableState.add_to_pot("rolf", 50)
+      # Bet 20 chips for each player
+      |> TableState.add_to_pot(player2, 20)
+      |> TableState.add_to_pot(player1, 20)
+      # Bet 50 ships for rolf (so 30 more)
+      |> TableState.add_to_pot(player2, 50)
 
-    updated_player1 = TableState.get_player(updated_state, "stine")
-    updated_player2 = TableState.get_player(updated_state, "rolf")
+    updated_player1 = TableState.get_player(updated_state, player1)
+    updated_player2 = TableState.get_player(updated_state, player2)
 
     # each player starts with 100 chips
     assert updated_player1.remaining_chips == 80
