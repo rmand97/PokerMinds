@@ -120,9 +120,10 @@ defmodule PokerMind.Engine.Actions do
   #   TableState.current_bet = amount
   # end
 
-  # TODO
   defp advance_player_turn(%TableState{} = state, _action) do
-    if TableState.round_complete?(state) do
+    updated_state = TableState.complete_current_player_turn(state)
+
+    if TableState.round_complete?(updated_state) do
       next_phase = TableState.next_phase(state)
 
       state
@@ -130,8 +131,6 @@ defmodule PokerMind.Engine.Actions do
       |> TableState.advance_phase(next_phase)
       |> TableState.set_current_player_for_phase()
     else
-      updated_state = TableState.complete_current_player_turn(state)
-
       next_player = TableState.find_next_active_player(updated_state, state.current_player_id)
       %{updated_state | current_player_id: next_player.id}
     end
