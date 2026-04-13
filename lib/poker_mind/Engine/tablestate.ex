@@ -183,25 +183,6 @@ defmodule PokerMind.Engine.TableState do
       end
 
     %{state | current_player_id: start_from_player.id}
-    start_from =
-      case state.phase do
-        :pre_flop ->
-          after_small_blind = find_next_active_player(state, state.small_blind)
-          after_big_blind = find_next_active_player(state, after_small_blind)
-          after_big_blind
-
-        _post_flop ->
-          state.small_blind
-      end
-
-    start_from =
-      if start_from.state == :active_in_hand do
-        start_from
-      else
-        find_next_active_player(state, start_from)
-      end
-
-    %{state | current_player: start_from, action_started_at: start_from}
   end
 
   def round_complete?(%__MODULE__{players: players}) do
