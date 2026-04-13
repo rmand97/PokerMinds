@@ -22,7 +22,8 @@ defmodule PokerMind.Engine.Actions do
     end
   end
 
-  # def apply_action(%TableState{} = state, %{type: :call, player_id: player_id, amount: amount}) when is_binary(player_id) do
+  # def apply_action(%TableState{} = state, %{type: :call, player_id: player_id, amount: amount})
+  #     when is_binary(player_id) do
   #   with :ok <- validate_turn(player_id) do
   #     state.phase
   #     |> deduct_chips(player_id, amount)
