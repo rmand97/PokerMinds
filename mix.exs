@@ -59,7 +59,8 @@ defmodule PokerMind.MixProject do
       {:mix_test_watch, "~> 1.4.0", only: [:dev, :test], runtime: false},
       {:kino, "~> 0.19.0", only: :dev},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:uuid, "~> 1.1"}
+      {:uuid, "~> 1.1"},
+      {:open_api_spex, "~> 3.22"}
     ]
   end
 
