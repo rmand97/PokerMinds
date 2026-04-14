@@ -1,5 +1,6 @@
 defmodule PokerMindWeb.GameController do
   use PokerMindWeb, :controller
+  use OpenApiSpex.ControllerSpecs
 
   alias PokerMind.Engine.Match.Coordinator
   alias PokerMind.Engine.Match.Game
@@ -7,9 +8,24 @@ defmodule PokerMindWeb.GameController do
   alias PokerMind.Engine.TableState
   alias PokerMind.Engine.TableState.PlayerState
 
+  alias PokerMindWeb.Schemas.GameResponse
+  # alias PokerMindWeb.Schemas.ActionRequest
+  # alias PokerMindWeb.Schemas.ActionResponse
+
   def suites(conn, _params) do
     json(conn, %{data: MatchSupervisor.all_match_suites()})
   end
+
+  operation(:next_games,
+    summary: "List upcoming games",
+    parameters: [
+      player_id: [in: :query, description: "Your ID", type: :string],
+      suite_id: [in: :query, description: "Suite ID", type: :string]
+    ],
+    responses: [
+      ok: {"List of games", "application/json", GameResponse}
+    ]
+  )
 
   def next_games(conn, %{"player_id" => player_id, "suite_id" => suite_id}) do
     coordinator_id = Coordinator.id(suite_id)
@@ -72,8 +88,9 @@ defmodule PokerMindWeb.GameController do
     mapped_player_state = %{
       id: player.id,
       remaining_chips: player.remaining_chips,
-      player_state: player.state,
-      has_acted: player.has_acted
+      state: player.state,
+      has_acted: player.has_acted,
+      current_bet: player.current_bet
     }
 
     if player.id == calling_player_id do

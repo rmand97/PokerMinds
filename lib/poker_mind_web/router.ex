@@ -14,14 +14,23 @@ defmodule PokerMindWeb.Router do
   pipeline :api do
     plug :accepts, ["json"]
     plug :fetch_token_and_verify
+    plug OpenApiSpex.Plug.PutApiSpec, module: PokerMindWeb.ApiSpec
   end
 
-  scope "/api", PokerMindWeb do
+  scope "/" do
+    pipe_through :browser
+    get "/", PokerMindWeb.GameController, :index
+    get "/swaggerui", OpenApiSpex.Plug.SwaggerUI, path: "/api/openapi"
+  end
+
+  scope "/api" do
     pipe_through :api
 
     get "/next_games", GameController, :next_games
     get "/suites", GameController, :suites
     post "/action", GameController, :perform_action
+
+    get "/openapi", OpenApiSpex.Plug.RenderSpec, []
   end
 
   # Enable LiveDashboard in development
