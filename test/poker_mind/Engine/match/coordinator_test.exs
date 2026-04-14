@@ -156,8 +156,9 @@ defmodule PokerMind.Engine.Match.CoordinatorTest do
     test "register_game_ready/3 returns {:error, :game_not_found} when coordinator exists but game does not" do
       coordinator_id = UUID.uuid4()
       game_id = UUID.uuid4()
+      player = "rolf"
 
-      start_supervised!({Coordinator, name: coordinator_id, num_games: 1})
+      start_supervised!({Coordinator, name: coordinator_id, num_games: 1, players: [player]})
 
       assert {:error, :game_not_found} =
                Coordinator.register_game_ready(coordinator_id, game_id, "rolf")
@@ -174,11 +175,12 @@ defmodule PokerMind.Engine.Match.CoordinatorTest do
     test "register_game_finished/3 returns {:error, :game_not_found} when coordinator exists but game does not" do
       coordinator_id = UUID.uuid4()
       game_id = UUID.uuid4()
+      player = "rolf"
 
-      start_supervised!({Coordinator, name: coordinator_id, num_games: 1})
+      start_supervised!({Coordinator, name: coordinator_id, num_games: 1, players: [player]})
 
       assert {:error, :game_not_found} =
-               Coordinator.register_game_finished(coordinator_id, game_id, "rolf")
+               Coordinator.register_game_finished(coordinator_id, game_id, player)
     end
   end
 end
