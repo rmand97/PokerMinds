@@ -1,5 +1,6 @@
 defmodule PokerMind.Engine.Match.GameControllerTest do
   use PokerMindWeb.ConnCase, async: true
+  import OpenApiSpex.TestAssertions
   alias PokerMind.Engine.Match.Game
   alias PokerMindWeb.MatchSupport
   alias PokerMind.Engine.Match.Supervisor, as: MatchSupervisor
@@ -67,18 +68,20 @@ defmodule PokerMind.Engine.Match.GameControllerTest do
            ]
 
     assert Map.keys(hd(state["game"]["other_players"])) == [
+             "current_bet",
              "has_acted",
              "id",
-             "player_state",
-             "remaining_chips"
+             "remaining_chips",
+             "state"
            ]
 
     assert Map.keys(state["game"]["player"]) == [
+             "current_bet",
              "current_hand",
              "has_acted",
              "id",
-             "player_state",
-             "remaining_chips"
+             "remaining_chips",
+             "state"
            ]
 
     assert state["id"] == game_id
@@ -122,5 +125,22 @@ defmodule PokerMind.Engine.Match.GameControllerTest do
     assert json_response(conn, :bad_request) == %{
              "error" => "player_id, game_id and action are required"
            }
+  end
+
+  test "GameController produces a GameResponse", %{conn: conn} do
+    suite_id = UUID.uuid4()
+    num_games = 10
+    players = ["stine"]
+
+    {:ok, _pid, suite_id} = MatchSupport.start_match_suite!(suite_id, players, num_games)
+    on_exit(fn -> MatchSupervisor.close_match_suite(suite_id) end)
+
+    json =
+      conn
+      |> get("/api/next_games", %{"player_id" => "stine", "suite_id" => suite_id})
+      |> json_response(200)
+
+    api_spec = PokerMindWeb.ApiSpec.spec()
+    assert_schema(json, "GameResponse", api_spec)
   end
 end
