@@ -21,7 +21,9 @@ defmodule PokerMindWeb.ApiSpec do
       },
       paths: Paths.from_router(Router),
       components: %Components{
-        securitySchemes: %{"authorization" => %SecurityScheme{type: "apiKey", in: "header", name: "authorization"}}
+        securitySchemes: %{
+          "authorization" => %SecurityScheme{type: "apiKey", in: "header", name: "authorization"}
+        }
       },
       security: [%{"authorization" => []}]
     }

@@ -5,7 +5,6 @@ defmodule PokerMindWeb.Schemas do
     require OpenApiSpex
 
     OpenApiSpex.schema(%{
-      title: "Card",
       type: :object,
       properties: %{
         rank: %Schema{type: :integer},
@@ -18,7 +17,6 @@ defmodule PokerMindWeb.Schemas do
     require OpenApiSpex
 
     OpenApiSpex.schema(%{
-      title: "Player",
       description: "Information about a base player",
       type: :object,
       properties: %{
@@ -80,8 +78,27 @@ defmodule PokerMindWeb.Schemas do
           type: :array,
           items: Game
         },
-        all_games_finished: %Schema{type: :boolean, description: "All games in suite are finished"}
+        all_games_finished: %Schema{
+          type: :boolean,
+          description: "All games in suite are finished"
+        }
       }
+    })
+  end
+
+  defmodule ActionRequest do
+    require OpenApiSpex
+
+    OpenApiSpex.schema(%{
+      title: "Action Parameters",
+      description: "Required parameters for making an action",
+      type: :object,
+      properties: %{
+        player_id: %Schema{type: :string, description: "Your ID"},
+        game_id: %Schema{type: :string, description: "Game ID"},
+        action: %Schema{type: :string, description: "Action to apply"}
+      },
+      required: [:player_id, :game_id, :action]
     })
   end
 end

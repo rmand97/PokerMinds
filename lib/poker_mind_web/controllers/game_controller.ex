@@ -9,8 +9,7 @@ defmodule PokerMindWeb.GameController do
   alias PokerMind.Engine.TableState.PlayerState
 
   alias PokerMindWeb.Schemas.GameResponse
-  # alias PokerMindWeb.Schemas.ActionRequest
-  # alias PokerMindWeb.Schemas.ActionResponse
+  alias PokerMindWeb.Schemas.ActionRequest
 
   def suites(conn, _params) do
     json(conn, %{data: MatchSupervisor.all_match_suites()})
@@ -49,6 +48,14 @@ defmodule PokerMindWeb.GameController do
     |> put_status(:bad_request)
     |> json(%{error: "player_id and suite_id are required"})
   end
+
+  operation(:perform_action,
+    summary: "Submit a player action",
+    request_body: {"Action params", "application/json", ActionRequest},
+    responses: [
+      ok: {"Updated game state", "application/json", PokerMindWeb.Schemas.Game}
+    ]
+  )
 
   def perform_action(conn, %{
         "player_id" => player_id,

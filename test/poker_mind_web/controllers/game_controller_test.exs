@@ -127,7 +127,7 @@ defmodule PokerMind.Engine.Match.GameControllerTest do
            }
   end
 
-  test "GameController produces a GameResponse", %{conn: conn} do
+  test "GameController next_games produces a GameResponse", %{conn: conn} do
     suite_id = UUID.uuid4()
     num_games = 10
     players = ["stine"]
@@ -142,5 +142,27 @@ defmodule PokerMind.Engine.Match.GameControllerTest do
 
     api_spec = PokerMindWeb.ApiSpec.spec()
     assert_schema(json, "GameResponse", api_spec)
+  end
+
+  test "GameController perform_action produces a Game", %{conn: conn} do
+    suite_id = UUID.uuid4()
+    game_id = Game.id(suite_id, 1)
+    num_games = 10
+    players = ["stine"]
+
+    {:ok, _pid, suite_id} = MatchSupport.start_match_suite!(suite_id, players, num_games)
+    on_exit(fn -> MatchSupervisor.close_match_suite(suite_id) end)
+
+    json =
+      conn
+      |> post("/api/action", %{
+        "player_id" => "stine",
+        "game_id" => game_id,
+        "action" => "fold"
+      })
+      |> json_response(200)
+
+    api_spec = PokerMindWeb.ApiSpec.spec()
+    assert_schema(json, "Game", api_spec)
   end
 end
