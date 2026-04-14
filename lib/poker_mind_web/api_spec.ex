@@ -1,10 +1,10 @@
 defmodule PokerMindWeb.ApiSpec do
+  alias OpenApiSpex.Components
   alias OpenApiSpex.Info
   alias OpenApiSpex.OpenApi
   alias OpenApiSpex.Paths
-  alias OpenApiSpex.Server
-  alias OpenApiSpex.Components
   alias OpenApiSpex.SecurityScheme
+  alias OpenApiSpex.Server
   alias PokerMindWeb.Endpoint
   alias PokerMindWeb.Router
   @behaviour OpenApi

@@ -8,8 +8,8 @@ defmodule PokerMindWeb.GameController do
   alias PokerMind.Engine.TableState
   alias PokerMind.Engine.TableState.PlayerState
 
-  alias PokerMindWeb.Schemas.GameResponse
   alias PokerMindWeb.Schemas.ActionRequest
+  alias PokerMindWeb.Schemas.GameResponse
 
   def suites(conn, _params) do
     json(conn, %{data: MatchSupervisor.all_match_suites()})
