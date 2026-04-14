@@ -74,7 +74,7 @@ defmodule PokerMind.Engine.Actions do
     end
   end
 
-  defp validate_amount(state, player_id, amount) do
+  defp validate_amount(state, player_id, amount) when is_binary(amount) do
     player = TableState.get_player(state, player_id)
 
     cond do
@@ -101,22 +101,6 @@ defmodule PokerMind.Engine.Actions do
         {:error, "Not a valid action"}
     end
   end
-
-  # input: player_id, amount
-  # defp deduct_chips(player_id, amount) do
-  #   # TODO
-  #   TableState.player(player_id).stack_size = TableState.player(player_id).stack_size - amount
-  # end
-
-  # defp add_to_pot(amount) do
-  #   # TODO
-  #   TableState = TableState.Pot + amount
-  # end
-
-  # defp update_current_raise(amount) do
-  #   # TODO
-  #   TableState.current_bet = amount
-  # end
 
   defp advance_player_turn(%TableState{} = state, _action) do
     updated_state = TableState.complete_current_player_turn(state)

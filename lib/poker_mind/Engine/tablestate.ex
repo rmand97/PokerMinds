@@ -15,7 +15,7 @@ defmodule PokerMind.Engine.TableState do
     :deck,
     # cards on the table
     :community_cards,
-    # Player who is sblind
+    # Player who is small blind
     :small_blind_id,
     # whose turn
     :current_player_id,
