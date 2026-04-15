@@ -6,7 +6,7 @@ defmodule PokerMind.Engine.Actions do
     with :ok <- validate_turn(state, player_id),
          :ok <- validate_amount(state, player_id, amount),
          :ok <- validate_raise(state, player_id, amount) do
-      state.phase
+      state
       |> TableState.add_to_pot(player_id, amount)
       |> TableState.update_highest_raise(amount)
       |> advance_player_turn(:raise)
@@ -26,7 +26,7 @@ defmodule PokerMind.Engine.Actions do
       when is_binary(player_id) do
     with :ok <- validate_turn(state, player_id),
          :ok <- validate_amount(state, player_id, amount) do
-      state.phase
+      state
       |> TableState.add_to_pot(player_id, amount)
       |> advance_player_turn(:call)
     end
@@ -74,7 +74,7 @@ defmodule PokerMind.Engine.Actions do
     end
   end
 
-  defp validate_amount(state, player_id, amount) when is_binary(amount) do
+  defp validate_amount(state, player_id, amount) when is_integer(amount) do
     player = TableState.get_player(state, player_id)
 
     cond do
