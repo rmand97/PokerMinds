@@ -78,8 +78,8 @@ defmodule PokerMind.Engine.Actions do
     player = TableState.get_player(state, player_id)
 
     cond do
-      amount < player.remaining_chips -> :ok
-      amount == player.remaining_chips -> :ok
+      amount <= player.remaining_chips -> :ok
+      amount > 0 -> :ok
       true -> {:error, "Action requires more chips than player has remaining"}
     end
   end
