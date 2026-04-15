@@ -10,8 +10,6 @@ defmodule PokerMind.Engine.ActionsTest do
     id = UUID.uuid4()
     %{state: TableState.init(TableState.new(id), players)}
     ["stine", "rolf", "asbjørn", "simon"]
-
-    
   end
 
   test "fold action", %{state: init_state} do
