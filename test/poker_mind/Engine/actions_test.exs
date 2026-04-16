@@ -95,7 +95,11 @@ defmodule PokerMind.Engine.ActionsTest do
     starting_stack = Enum.find(init_state.players, &(&1.id == starting_player_id)).remaining_chips
     # Perform raise action with valid amount
     new_state =
-      Actions.apply_action(init_state, %{type: :raise, player_id: starting_player_id, amount: 2* init_state.highest_raise})
+      Actions.apply_action(init_state, %{
+        type: :raise,
+        player_id: starting_player_id,
+        amount: 2 * init_state.highest_raise
+      })
 
     # did action go through?
     assert Enum.any?(new_state.players, &(&1.id == starting_player_id and &1.has_acted))
