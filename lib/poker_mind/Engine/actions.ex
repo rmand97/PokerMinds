@@ -77,9 +77,10 @@ defmodule PokerMind.Engine.Actions do
   defp validate_amount(state, player_id, amount) when is_integer(amount) do
     player = TableState.get_player(state, player_id)
 
-    cond do
-      amount <= player.remaining_chips and amount > 0 -> :ok
-      true -> {:error, "Action requires more chips than player has remaining"}
+    if amount <= player.remaining_chips and amount > 0 do
+      :ok
+    else
+      {:error, "Action requires more chips than player has remaining"}
     end
   end
 
