@@ -90,19 +90,6 @@ defmodule PokerMindWeb.GameController do
     |> json(%{error: "player_id, game_id and action are required"})
   end
 
-  defp map_card(%{rank: rank, suit: suit}) do
-    mapped_rank =
-      case rank do
-        11 -> "knight"
-        12 -> "queen"
-        13 -> "king"
-        14 -> "ace"
-        other -> Integer.to_string(other)
-      end
-
-    %{rank: mapped_rank, suit: suit}
-  end
-
   # TODO: This is a draft
   defp map_playerstate(%PlayerState{} = player, calling_player_id) do
     mapped_player_state = %{
@@ -114,10 +101,7 @@ defmodule PokerMindWeb.GameController do
     }
 
     if player.id == calling_player_id do
-      mapped_current_hand =
-        Enum.map(player.current_hand, fn card -> map_card(card) end)
-
-      Map.put(mapped_player_state, :current_hand, mapped_current_hand)
+      Map.put(mapped_player_state, :current_hand, player.current_hand)
     else
       mapped_player_state
     end
@@ -134,16 +118,13 @@ defmodule PokerMindWeb.GameController do
       |> Enum.filter(fn player -> player.id != player_id end)
       |> Enum.map(fn player -> map_playerstate(player, player_id) end)
 
-    mapped_community_cards =
-      Enum.map(tablestate.community_cards, fn card -> map_card(card) end)
-
     %{
       id: tablestate.id,
       player: player,
       other_players: other_players,
       phase: tablestate.phase,
       pot: tablestate.pot,
-      community_cards: mapped_community_cards,
+      community_cards: tablestate.community_cards,
       current_player_id: tablestate.current_player_id,
       highest_raise: tablestate.highest_raise
     }

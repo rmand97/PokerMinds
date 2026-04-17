@@ -7,7 +7,7 @@ defmodule PokerMindWeb.Schemas do
     OpenApiSpex.schema(%{
       type: :object,
       properties: %{
-        rank: %Schema{type: :string},
+        rank: %Schema{type: :integer},
         suit: %Schema{type: :string}
       }
     })
