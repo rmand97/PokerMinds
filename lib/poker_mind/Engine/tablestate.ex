@@ -106,7 +106,7 @@ defmodule PokerMind.Engine.TableState do
 
   defp new_deck(%__MODULE__{} = state) do
     suits = [:hearts, :diamonds, :clubs, :spades]
-    ranks = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    ranks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
 
     deck =
       for suit <- suits, rank <- ranks do
@@ -247,10 +247,21 @@ defmodule PokerMind.Engine.TableState do
 
   def compare_cards(rank1, rank2)
       when is_integer(rank1) and is_integer(rank2) do
+    rank1 = something(rank1)
+    rank2 = something(rank2)
+
     cond do
       rank1 < rank2 -> :lt
       rank1 > rank2 -> :gt
       true -> :eq
     end
+  end
+
+  defp something(1) do
+    14
+  end
+
+  defp something(rank) when is_integer(rank) and rank > 1 and rank < 14 do
+    rank
   end
 end
