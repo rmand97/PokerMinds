@@ -139,4 +139,10 @@ defmodule PokerMind.Engine.TableStateTest do
 
     assert updated_state.pot == 70
   end
+
+  test "compare_cards/2 - returns :lt, :gt, or :eq based on card rank" do
+    assert TableState.compare_cards(2, 14) == :lt
+    assert TableState.compare_cards(14, 2) == :gt
+    assert TableState.compare_cards(14, 14) == :eq
+  end
 end
