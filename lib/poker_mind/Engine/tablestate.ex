@@ -273,7 +273,7 @@ defmodule PokerMind.Engine.TableState do
       11 -> "J"
       12 -> "Q"
       13 -> "K"
-      n when n >= 2 and n <= 10 -> Integer.to_string(n)
+      n when n >= 2 and n <= 9 -> Integer.to_string(n)
     end
   end
 
