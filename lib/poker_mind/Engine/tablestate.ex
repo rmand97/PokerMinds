@@ -290,12 +290,15 @@ defmodule PokerMind.Engine.TableState do
     "#{rank_to_string(rank)}#{suit_to_string(suit)}"
   end
 
-  def compare_hands(hand1, hand2, community_cards) do
-    translated_hand1 = Enum.map_join(hand1, " ", fn card -> translate_card(card) end)
-    translated_hand2 = Enum.map_join(hand2, " ", fn card -> translate_card(card) end)
+  defp translate_cards(cards) do
+    Enum.map_join(cards, " ", fn card -> translate_card(card) end)
+  end
 
-    translated_community_cards =
-      Enum.map_join(community_cards, " ", fn card -> translate_card(card) end)
+  def compare_hands(hand1, hand2, community_cards) do
+    # Change format for cards to match the args for best_hand/2
+    translated_hand1 = translate_cards(hand1)
+    translated_hand2 = translate_cards(hand2)
+    translated_community_cards = translate_cards(community_cards)
 
     {_, best_hand1} = Poker.best_hand(translated_hand1, translated_community_cards)
     {_, best_hand2} = Poker.best_hand(translated_hand2, translated_community_cards)
