@@ -1,6 +1,6 @@
 defmodule PokerMind.Engine.TableState do
-  alias PokerMind.Engine.TableState.PlayerState
   alias PokerMind.Engine.Poker
+  alias PokerMind.Engine.TableState.PlayerState
 
   @enforce_keys [:id, :phase, :players, :pot, :deck, :community_cards]
   defstruct [

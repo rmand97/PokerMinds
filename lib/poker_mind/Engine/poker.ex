@@ -1,3 +1,4 @@
+# credo:disable-for-this-file
 defmodule PokerMind.Engine.Poker do
   @moduledoc """
   Copied from <https://github.com/wojtekmach/poker_elixir>
