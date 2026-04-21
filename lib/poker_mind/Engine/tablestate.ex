@@ -305,4 +305,29 @@ defmodule PokerMind.Engine.TableState do
 
     Poker.hand_compare(best_hand1, best_hand2)
   end
+
+  # TODO handle sidepot
+  def split_pot(%__MODULE__{} = state, winners) when is_list(winners) do
+    leftover_chips = rem(state.pot, length(winners))
+    winning_chips = div(state.pot - leftover_chips, length(winners))
+
+    # Distribute leftover chips one for each winner, starting with the first winning player
+    new_state =
+      if leftover_chips > 0 do
+        Enum.reduce(0..(leftover_chips - 1), state, fn i, current_state ->
+          winner_id = Enum.at(winners, i)
+          PlayerState.add_chips(current_state, winner_id, 1)
+        end)
+      else
+        state
+      end
+
+    # Distribute winnings to all winners
+    final_state =
+      Enum.reduce(winners, new_state, fn winner_id, current_state ->
+        PlayerState.add_chips(current_state, winner_id, winning_chips)
+      end)
+
+    Map.put(final_state, :pot, 0)
+  end
 end
