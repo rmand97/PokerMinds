@@ -90,7 +90,7 @@ defmodule PokerMind.Engine.Poker do
   The bigger the number the more valuable a given hand is.
 
       iex> Poker.hand_value("Ac Kc Qc Jc Tc")
-      8014
+      6_783_750
   """
   def hand_value(str) when is_binary(str) do
     str |> parse_hand |> hand_value
@@ -99,32 +99,37 @@ defmodule PokerMind.Engine.Poker do
   def hand_value(hand) do
     case hand_rank(hand) do
       {:straight_flush, a} ->
-        8_000 + card_value(a)
+        score(8, [card_value(a)])
 
-      {:four_of_a_kind, _a, b} ->
-        7_000 + card_value(b)
+      {:four_of_a_kind, a, b} ->
+        score(7, [card_value(a), card_value(b)])
 
       {:full_house, a, b} ->
-        6_000 + 15 * card_value(a) + card_value(b)
+        score(6, [card_value(a), card_value(b)])
 
       {:flush, _r, a, b, c, d, e} ->
-        5_000 + card_value(a) + card_value(b) + card_value(c) + card_value(d) + card_value(e)
+        score(5, [card_value(a), card_value(b), card_value(c), card_value(d), card_value(e)])
 
       {:straight, a} ->
-        4_000 + card_value(a)
+        score(4, [card_value(a)])
 
       {:three_of_a_kind, a, b, c} ->
-        3_000 + 15 * card_value(a) + card_value(b) + card_value(c)
+        score(3, [card_value(a), card_value(b), card_value(c)])
 
       {:two_pair, a, b, c} ->
-        2_000 + 15 * card_value(a) + 15 * card_value(b) + card_value(c)
+        score(2, [card_value(a), card_value(b), card_value(c)])
 
       {:one_pair, a, b, c, d} ->
-        1_000 + 15 * card_value(a) + card_value(b) + card_value(c) + card_value(d)
+        score(1, [card_value(a), card_value(b), card_value(c), card_value(d)])
 
       {:high_card, a, b, c, d, e} ->
-        card_value(a) + card_value(b) + card_value(c) + card_value(d) + card_value(e)
+        score(0, [card_value(a), card_value(b), card_value(c), card_value(d), card_value(e)])
     end
+  end
+
+  defp score(type, values) do
+    padded = values ++ List.duplicate(0, 5 - length(values))
+    Enum.reduce(padded, type, fn v, acc -> acc * 15 + v end)
   end
 
   @doc """
@@ -259,10 +264,20 @@ defmodule PokerMind.Engine.Poker do
   defp parse_rank(str), do: String.to_integer(str)
 
   defp sort_hand(hand) do
-    hand
-    |> Tuple.to_list()
-    |> Enum.sort_by(fn {rank, _} -> card_value(rank) end)
-    |> Enum.reverse()
+    cards = Tuple.to_list(hand)
+
+    # Sort by (rank count desc, rank value desc) so paired/tripped cards land
+    # contiguously at the front. Required by the hand_rank pattern matches.
+    counts =
+      cards
+      |> Enum.map(fn {rank, _} -> rank end)
+      |> Enum.frequencies()
+
+    cards
+    |> Enum.sort_by(
+      fn {rank, _} -> {counts[rank], card_value(rank)} end,
+      :desc
+    )
     |> List.to_tuple()
   end
 end
