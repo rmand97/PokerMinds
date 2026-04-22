@@ -258,4 +258,22 @@ defmodule PokerMind.Engine.TableStateTest do
     assert TableState.get_player(final_state, "asbjørn").remaining_chips == 34
     assert TableState.get_player(final_state, "rolf").remaining_chips == 33
   end
+
+  test "advance_phase/2 - deal community_cards, three for flop, one for turn and one for river",
+       %{
+         state: state
+       } do
+    flop_phase = TableState.next_phase(state)
+    flop_state = TableState.advance_phase(state, flop_phase)
+
+    turn_phase = TableState.next_phase(flop_state)
+    turn_state = TableState.advance_phase(flop_state, turn_phase)
+
+    river_phase = TableState.next_phase(turn_state)
+    river_state = TableState.advance_phase(turn_state, river_phase)
+
+    assert length(flop_state.community_cards) == 3
+    assert length(turn_state.community_cards) == 4
+    assert length(river_state.community_cards) == 5
+  end
 end

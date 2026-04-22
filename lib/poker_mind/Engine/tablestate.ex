@@ -149,9 +149,23 @@ defmodule PokerMind.Engine.TableState do
     end
   end
 
+  defp deal_community_cards(%__MODULE__{} = state, amount) when is_integer(amount) do
+    {drawn, remaining} = Enum.split(state.deck, amount)
+
+    state
+    |> Map.update(:community_cards, drawn, fn existing -> existing ++ drawn end)
+    |> Map.put(:deck, remaining)
+  end
+
   def advance_phase(%__MODULE__{} = state, next_phase) when is_atom(next_phase) do
     if next_phase in Map.get(@valid_transitions, state.phase, []) do
-      Map.put(state, :phase, next_phase)
+      new_state = Map.put(state, :phase, next_phase)
+
+      case next_phase do
+        :flop -> deal_community_cards(new_state, 3)
+        :turn -> deal_community_cards(new_state, 1)
+        :river -> deal_community_cards(new_state, 1)
+      end
     else
       {:error, {:invalid_transition, state.phase, next_phase}}
     end
