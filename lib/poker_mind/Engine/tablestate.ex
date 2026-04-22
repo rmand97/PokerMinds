@@ -136,16 +136,24 @@ defmodule PokerMind.Engine.TableState do
     :flop => [:turn, :showdown],
     :turn => [:river, :showdown],
     :river => [:showdown],
-    :showdown => [:finished]
+    :showdown => [:finished],
+    :finished => [:pre_flop]
   }
 
-  # TODO opdater så det passer med ovenstående valid transitions
   def next_phase(%__MODULE__{} = state) do
-    case state.phase do
-      :pre_flop -> :flop
-      :flop -> :turn
-      :turn -> :river
-      :river -> :showdown
+    active_count = Enum.count(state.players, fn player -> player.state == :active_in_hand end)
+
+    if active_count <= 1 do
+      :showdown
+    else
+      case state.phase do
+        :pre_flop -> :flop
+        :flop -> :turn
+        :turn -> :river
+        :river -> :showdown
+        :showdown -> :finished
+        :finished -> :pre_flop
+      end
     end
   end
 
@@ -165,6 +173,7 @@ defmodule PokerMind.Engine.TableState do
         :flop -> deal_community_cards(new_state, 3)
         :turn -> deal_community_cards(new_state, 1)
         :river -> deal_community_cards(new_state, 1)
+        :showdown -> handle_showdown(new_state)
       end
     else
       {:error, {:invalid_transition, state.phase, next_phase}}
@@ -343,5 +352,48 @@ defmodule PokerMind.Engine.TableState do
       end)
 
     Map.put(final_state, :pot, 0)
+  end
+
+  defp accumulate_winner(player, {_winners, nil}, _community_cards) do
+    {[player], player}
+  end
+
+  defp accumulate_winner(player, {winners, best}, community_cards) do
+    case compare_hands(player.current_hand, best.current_hand, community_cards) do
+      :gt -> {[player], player}
+      :lt -> {winners, best}
+      :eq -> {[player | winners], best}
+    end
+  end
+
+  defp find_winners(players, community_cards) do
+    {winners, _} =
+      Enum.reduce(players, {[], nil}, fn player, acc ->
+        accumulate_winner(player, acc, community_cards)
+      end)
+
+    Enum.map(winners, fn winner -> winner.id end)
+  end
+
+  # TODO handle sidepots
+  defp handle_showdown(%__MODULE__{} = state) do
+    active_players =
+      Enum.filter(state.players, fn player -> player.state in [:active_in_hand, :all_in] end)
+
+    case active_players do
+      [winner] ->
+        split_pot(state, [winner.id])
+
+      players ->
+        new_state =
+          if length(state.community_cards) < 5 do
+            deal_community_cards(state, 5 - length(state.community_cards))
+          else
+            state
+          end
+
+        winner_ids = find_winners(players, new_state.community_cards)
+        split_pot(new_state, winner_ids)
+    end
   end
 end

@@ -276,4 +276,86 @@ defmodule PokerMind.Engine.TableStateTest do
     assert length(turn_state.community_cards) == 4
     assert length(river_state.community_cards) == 5
   end
+
+  test "advance_phase/2 - handle showdown with one active player remaining",
+       %{
+         state: state
+       } do
+    players = [
+      "stine",
+      "rolf",
+      "asbjørn",
+      "simon"
+    ]
+
+    new_state =
+      Enum.reduce(players, state, fn name, acc ->
+        acc
+        |> TableState.set_player_value(name, :state, :inactive_in_hand)
+        |> TableState.set_player_value(name, :remaining_chips, 0)
+      end)
+      |> TableState.set_player_value("stine", :state, :active_in_hand)
+      |> Map.put(:pot, 100)
+
+    next_phase = TableState.next_phase(new_state)
+    final_state = TableState.advance_phase(new_state, next_phase)
+
+    assert next_phase == :showdown
+    assert final_state.pot == 0
+    assert final_state.community_cards == []
+    assert TableState.get_player(final_state, "rolf").remaining_chips == 0
+    assert TableState.get_player(final_state, "stine").remaining_chips == 100
+  end
+
+  test "advance_phase/2 - handle showdown with four active players remaining, player 3 and player 4 has equally good hands",
+       %{
+         state: state
+       } do
+    # (two pair) A♦ A♣ 7♣ 7♦ 6♣ - worst
+    player1_hand = [%{rank: 2, suit: :hearts}, %{rank: 7, suit: :clubs}]
+
+    # (two pair) A♦ A♣ K♥ K♦ 7♦ - better than player 1
+    player2_hand = [%{rank: 13, suit: :hearts}, %{rank: 13, suit: :diamonds}]
+
+    # (straight) 7♦ 6♣ 5♥ 4♦ 3♣ - better than player 2
+    player3_hand = [%{rank: 4, suit: :diamonds}, %{rank: 5, suit: :hearts}]
+
+    # (straight) 7♦ 6♣ 5♦ 4♣ 3♣ - equal to player 3, but different suits
+    player4_hand = [%{rank: 4, suit: :clubs}, %{rank: 5, suit: :diamonds}]
+
+    community_cards = [
+      %{rank: 3, suit: :clubs},
+      %{rank: 6, suit: :clubs},
+      %{rank: 7, suit: :diamonds},
+      %{rank: 1, suit: :diamonds},
+      %{rank: 1, suit: :clubs}
+    ]
+
+    players = [
+      {"stine", player1_hand},
+      {"rolf", player2_hand},
+      {"asbjørn", player3_hand},
+      {"simon", player4_hand}
+    ]
+
+    new_state =
+      Enum.reduce(players, state, fn {name, hand}, acc ->
+        acc
+        |> TableState.set_player_value(name, :state, :all_in)
+        |> TableState.set_player_value(name, :remaining_chips, 0)
+        |> TableState.set_player_value(name, :current_hand, hand)
+      end)
+      |> Map.put(:community_cards, community_cards)
+      |> Map.put(:pot, 100)
+
+    next_phase = TableState.next_phase(new_state)
+    final_state = TableState.advance_phase(new_state, next_phase)
+
+    assert next_phase == :showdown
+    assert final_state.pot == 0
+    assert TableState.get_player(final_state, "stine").remaining_chips == 0
+    assert TableState.get_player(final_state, "rolf").remaining_chips == 0
+    assert TableState.get_player(final_state, "asbjørn").remaining_chips == 50
+    assert TableState.get_player(final_state, "simon").remaining_chips == 50
+  end
 end
