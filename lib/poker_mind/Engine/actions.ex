@@ -52,6 +52,7 @@ defmodule PokerMind.Engine.Actions do
       when is_binary(player_id) do
     with :ok <- validate_turn(state, player_id) do
       PlayerState.set_player_value(player_id, :state, :all_in)
+
       state
       |> TableState.add_to_pot(player_id, TableState.get_player(state, player_id).remaining_chips)
       |> advance_player_turn(:all_in)
@@ -87,9 +88,16 @@ defmodule PokerMind.Engine.Actions do
     player = TableState.get_player(state, player_id)
 
     cond do
-      amount < player.remaining_chips -> :ok
-      amount > 0 -> :ok
-      true -> {:error, "Action requires more chips than player has remaining - if you want to go all in use the all_in action type"}
+      amount < player.remaining_chips and amount > 0 ->
+        :ok
+
+      amount == player.remaining_chips ->
+        {:error,
+         "Action requires all remaining chips - if you want to go all in use the all_in action type"}
+
+      true ->
+        {:error,
+         "Action requires more chips than player has remaining - if you want to go all in use the all_in action type"}
     end
   end
 

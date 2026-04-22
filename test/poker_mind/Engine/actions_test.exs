@@ -326,15 +326,17 @@ defmodule PokerMind.Engine.ActionsTest do
              player_id: starting_player_id,
              amount: 3 * player_remaining_chips
            }) ==
-             {:error, "Action requires more chips than player has remaining"}
+             {:error,
+              "Action requires more chips than player has remaining - if you want to go all in use the all_in action type"}
 
     # raise amount equal to player stack
-    assert %TableState{} =
-             Actions.apply_action(init_state, %{
-               type: :raise,
-               player_id: starting_player_id,
-               amount: player_remaining_chips
-             })
+    assert Actions.apply_action(init_state, %{
+             type: :raise,
+             player_id: starting_player_id,
+             amount: player_remaining_chips
+           }) ==
+             {:error,
+              "Action requires all remaining chips - if you want to go all in use the all_in action type"}
 
     # test call
   end
