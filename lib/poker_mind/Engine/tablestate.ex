@@ -149,8 +149,8 @@ defmodule PokerMind.Engine.TableState do
     end
   end
 
-  defp deal_community_cards(%__MODULE__{} = state, num) do
-    {drawn, remaining} = Enum.split(state.deck, num)
+  defp deal_community_cards(%__MODULE__{} = state, amount) when is_integer(amount) do
+    {drawn, remaining} = Enum.split(state.deck, amount)
 
     state
     |> Map.update(:community_cards, drawn, fn existing -> existing ++ drawn end)
