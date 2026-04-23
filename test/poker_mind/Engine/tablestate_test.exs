@@ -358,4 +358,80 @@ defmodule PokerMind.Engine.TableStateTest do
     assert TableState.get_player(final_state, "asbjørn").remaining_chips == 50
     assert TableState.get_player(final_state, "simon").remaining_chips == 50
   end
+
+  test "advance_phase/2 - handle finished and starts a new hand with new small blind and reset players and table",
+       %{
+         state: state
+       } do
+    players = [
+      "stine",
+      "rolf",
+      "asbjørn",
+      "simon"
+    ]
+
+    new_state =
+      Enum.reduce(players, state, fn name, current_state ->
+        current_state
+        |> TableState.set_player_value(name, :state, :inactive_in_hand)
+        |> TableState.set_player_value(name, :remaining_chips, 50)
+      end)
+      |> TableState.set_player_value("stine", :state, :active_in_hand)
+      |> Map.put(:pot, 150)
+      |> TableState.advance_phase(:showdown)
+
+    # Showdown leaves stine with 200 chips and rest with 50
+
+    next_phase = TableState.next_phase(new_state)
+    final_state = TableState.advance_phase(new_state, next_phase)
+
+    for {player, updated_player} <- Enum.zip(state.players, final_state.players) do
+      # Make sure we compare the same player
+      assert player.id == updated_player.id
+      # Current hand has been updated for each player
+      assert length(player.current_hand) == length(updated_player.current_hand)
+      assert player.current_hand != updated_player.current_hand
+      # Current_bet, has_acted and state is reset
+      assert updated_player.current_bet == 0
+      assert updated_player.has_acted == false
+      assert updated_player.state == :active_in_hand
+    end
+
+    # No winner found yet
+    assert final_state.winner == nil
+    # New small blind is selected and we start the new hand
+    assert state.small_blind_id != final_state.small_blind_id
+    assert final_state.phase == :pre_flop
+  end
+
+  test "advance_phase/2 - an overall winner has been found for the table",
+       %{
+         state: state
+       } do
+    players = [
+      "stine",
+      "rolf",
+      "asbjørn",
+      "simon"
+    ]
+
+    new_state =
+      Enum.reduce(players, state, fn name, current_state ->
+        current_state
+        |> TableState.set_player_value(name, :state, :out_of_chips)
+        |> TableState.set_player_value(name, :remaining_chips, 0)
+      end)
+      |> TableState.set_player_value("stine", :state, :active_in_hand)
+      |> Map.put(:pot, 100)
+      |> TableState.advance_phase(:showdown)
+
+    # Showdown leaves stine with 100 chips and rest with 0
+
+    next_phase = TableState.next_phase(new_state)
+    final_state = TableState.advance_phase(new_state, next_phase)
+
+    # stine is the winner of the table
+    assert final_state.winner == "stine"
+    assert final_state.phase == :game_finished
+  end
 end

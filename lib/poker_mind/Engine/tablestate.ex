@@ -22,7 +22,8 @@ defmodule PokerMind.Engine.TableState do
     :current_player_id,
     # bet to match
     :highest_raise,
-    :big_blind_amount
+    :big_blind_amount,
+    :winner
   ]
 
   def new(id) when is_binary(id) do
@@ -41,8 +42,8 @@ defmodule PokerMind.Engine.TableState do
     state
     |> initialize_players(init_players)
     |> new_deck()
-    |> deal_cards()
     |> set_blinds()
+    |> deal_cards()
   end
 
   defp initialize_players(%__MODULE__{} = state, []) do
@@ -75,15 +76,21 @@ defmodule PokerMind.Engine.TableState do
   end
 
   # TODO: update with setting blinds and deducting chips from players
-  defp set_blinds(%__MODULE__{} = state) do
-    small_blind = Enum.random(state.players)
+  defp set_blinds(%__MODULE__{} = state, new_table \\ true) when is_boolean(new_table) do
+    new_state =
+      if new_table do
+        small_blind_id = Enum.random(state.players).id
+        Map.put(state, :small_blind_id, small_blind_id)
+      else
+        advance_player(state, :small_blind_id, state.small_blind_id)
+      end
+
     big_blind = 100
 
-    state
-    |> Map.put(:small_blind_id, small_blind.id)
+    new_state
     |> Map.put(:highest_raise, big_blind)
     |> Map.put(:big_blind_amount, big_blind)
-    |> advance_player(:current_player_id, small_blind.id)
+    |> advance_player(:current_player_id, new_state.small_blind_id)
     |> advance_player()
   end
 
@@ -122,8 +129,12 @@ defmodule PokerMind.Engine.TableState do
   def deal_cards(%__MODULE__{} = state) do
     {updated_players, remaining_deck} =
       Enum.map_reduce(state.players, state.deck, fn %PlayerState{} = player, acc ->
-        {drawn, remaining} = Enum.split(acc, 2)
-        {%{player | current_hand: drawn}, remaining}
+        if player.state == :active_in_hand do
+          {drawn, remaining} = Enum.split(acc, 2)
+          {%{player | current_hand: drawn}, remaining}
+        else
+          {player, acc}
+        end
       end)
 
     state
@@ -136,7 +147,7 @@ defmodule PokerMind.Engine.TableState do
     :flop => [:turn, :showdown],
     :turn => [:river, :showdown],
     :river => [:showdown],
-    :showdown => [:finished]
+    :showdown => [:hand_finished]
   }
 
   def next_phase(%__MODULE__{} = state) do
@@ -150,7 +161,7 @@ defmodule PokerMind.Engine.TableState do
         :flop -> :turn
         :turn -> :river
         :river -> :showdown
-        :showdown -> :finished
+        :showdown -> :hand_finished
       end
     end
   end
@@ -172,6 +183,7 @@ defmodule PokerMind.Engine.TableState do
         :turn -> deal_community_cards(new_state, 1)
         :river -> deal_community_cards(new_state, 1)
         :showdown -> handle_showdown(new_state)
+        :hand_finished -> possible_new_hand(new_state)
       end
     else
       {:error, {:invalid_transition, state.phase, next_phase}}
@@ -393,5 +405,43 @@ defmodule PokerMind.Engine.TableState do
         winner_ids = find_winners(players, new_state.community_cards)
         split_pot(new_state, winner_ids)
     end
+  end
+
+  defp possible_new_hand(%__MODULE__{} = state) do
+    players_with_remaining_chips =
+      Enum.filter(state.players, fn player -> player.remaining_chips > 0 end)
+
+    if length(players_with_remaining_chips) == 1 do
+      [winner] = players_with_remaining_chips
+
+      state
+      |> Map.put(:winner, winner.id)
+      |> Map.put(:phase, :game_finished)
+    else
+      new_state =
+        Enum.reduce(state.players, state, fn player, current_state ->
+          current_state
+          |> set_player_value(player.id, :current_hand, [])
+          |> set_player_value(player.id, :current_bet, 0)
+          |> set_player_value(player.id, :has_acted, false)
+          |> reset_player_state(player)
+        end)
+
+      new_state
+      |> Map.put(:community_cards, [])
+      |> new_deck()
+      |> set_blinds(false)
+      |> deal_cards()
+      |> Map.put(:phase, :pre_flop)
+    end
+  end
+
+  defp reset_player_state(state, player) do
+    new_state =
+      if player.remaining_chips == 0,
+        do: :out_of_chips,
+        else: :active_in_hand
+
+    set_player_value(state, player.id, :state, new_state)
   end
 end
