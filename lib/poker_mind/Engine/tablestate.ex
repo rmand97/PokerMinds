@@ -76,15 +76,21 @@ defmodule PokerMind.Engine.TableState do
   end
 
   # TODO: update with setting blinds and deducting chips from players
-  defp set_blinds(%__MODULE__{} = state) do
-    small_blind = Enum.random(state.players)
+  defp set_blinds(%__MODULE__{} = state, new_table \\ true) when is_boolean(new_table) do
+    new_state =
+      if new_table do
+        small_blind_id = Enum.random(state.players).id
+        Map.put(state, :small_blind_id, small_blind_id)
+      else
+        advance_player(state, :small_blind_id, state.small_blind_id)
+      end
+
     big_blind = 100
 
-    state
-    |> Map.put(:small_blind_id, small_blind.id)
+    new_state
     |> Map.put(:highest_raise, big_blind)
     |> Map.put(:big_blind_amount, big_blind)
-    |> advance_player(:current_player_id, small_blind.id)
+    |> advance_player(:current_player_id, new_state.small_blind_id)
     |> advance_player()
   end
 
