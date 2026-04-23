@@ -2,7 +2,7 @@ defmodule PokerMind.Engine.Actions do
   alias PokerMind.Engine.TableState
   alias PokerMind.Engine.TableState.PlayerState
 
-  def apply_action(%TableState{} = state, _action) when state.phase == :game_finished do
+  def apply_action(%TableState{phase: :game_finished}, _action) do
     {:error, {:game_is_finished, "Game is finished, no more actions can be performed"}}
   end
 
