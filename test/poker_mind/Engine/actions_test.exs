@@ -441,4 +441,24 @@ defmodule PokerMind.Engine.ActionsTest do
     assert Actions.apply_action(folded_state, %{type: :all_in, player_id: starting_player_id}) ==
              {:error, {:player_not_active, "Player is not active in the hand"}}
   end
+
+  test "game_finished and unsupported action errors", %{state: init_state} do
+    # game finished
+    game_finished_state = %{init_state | phase: :game_finished}
+    starting_player_id = init_state.current_player_id
+
+    assert Actions.apply_action(game_finished_state, %{
+             type: :raise,
+             player_id: starting_player_id,
+             amount: 200
+           }) ==
+             {:error, {:game_is_finished, "Game is finished, no more actions can be performed"}}
+
+    # unsupported action type
+    assert Actions.apply_action(init_state, %{
+             type: :unsupported_action,
+             player_id: starting_player_id
+           }) ==
+             {:error, {:invalid_action, "Action is not supported"}}
+  end
 end
