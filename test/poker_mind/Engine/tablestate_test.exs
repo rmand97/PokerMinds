@@ -352,6 +352,7 @@ defmodule PokerMind.Engine.TableStateTest do
         acc
         |> TableState.set_player_value(name, :state, :inactive_in_hand)
         |> TableState.set_player_value(name, :remaining_chips, 0)
+        |> TableState.set_player_value(name, :total_contributed, 25)
       end)
       |> TableState.set_player_value("stine", :state, :active_in_hand)
       |> Map.put(:pot, 100)
@@ -403,6 +404,7 @@ defmodule PokerMind.Engine.TableStateTest do
         |> TableState.set_player_value(name, :state, :all_in)
         |> TableState.set_player_value(name, :remaining_chips, 0)
         |> TableState.set_player_value(name, :current_hand, hand)
+        |> TableState.set_player_value(name, :total_contributed, 25)
       end)
       |> Map.put(:community_cards, community_cards)
       |> Map.put(:pot, 100)
@@ -479,6 +481,7 @@ defmodule PokerMind.Engine.TableStateTest do
         current_state
         |> TableState.set_player_value(name, :state, :out_of_chips)
         |> TableState.set_player_value(name, :remaining_chips, 0)
+        |> TableState.set_player_value(name, :total_contributed, 25)
       end)
       |> TableState.set_player_value("stine", :state, :active_in_hand)
       |> Map.put(:pot, 100)
@@ -492,7 +495,6 @@ defmodule PokerMind.Engine.TableStateTest do
     # stine is the winner of the table
     assert final_state.winner == "stine"
     assert final_state.phase == :game_finished
-
   end
 
   test "reset_highest_raise/1 - resets highest_raise to big_blind_amount", %{state: state} do

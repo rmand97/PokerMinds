@@ -269,7 +269,11 @@ defmodule PokerMind.Engine.TableState do
     amount_difference = amount - get_player(state, player_id).current_bet
 
     state
-    |> set_player_value(player_id, :total_contributed, get_player(state, player_id).total_contributed + amount_difference)
+    |> set_player_value(
+      player_id,
+      :total_contributed,
+      get_player(state, player_id).total_contributed + amount_difference
+    )
     |> PlayerState.deduct_chips(player_id, amount_difference)
     |> PlayerState.update_current_bet(player_id, amount)
     |> Map.put(:pot, state.pot + amount_difference)
@@ -445,47 +449,17 @@ defmodule PokerMind.Engine.TableState do
     |> Enum.map(&elem(&1, 0))
   end
 
-  defp accumulate_winner(player, {_winners, nil}, _community_cards) do
-    {[player], player}
-  end
-
-  defp accumulate_winner(player, {winners, best}, community_cards) do
-    case compare_hands(player.current_hand, best.current_hand, community_cards) do
-      :gt -> {[player], player}
-      :lt -> {winners, best}
-      :eq -> {[player | winners], best}
-    end
-  end
-
-  defp find_winners(players, community_cards) do
-    {winners, _} =
-      Enum.reduce(players, {[], nil}, fn player, acc ->
-        accumulate_winner(player, acc, community_cards)
-      end)
-
-    Enum.map(winners, fn winner -> winner.id end)
-  end
-
-  # TODO handle sidepots
   defp handle_showdown(%__MODULE__{} = state) do
-    active_players =
-      Enum.filter(state.players, fn player -> player.state in [:active_in_hand, :all_in] end)
+    active_count = Enum.count(state.players, &(&1.state in [:active_in_hand, :all_in]))
 
-    case active_players do
-      [winner] ->
-        split_pot(state, [winner.id])
+    new_state =
+      if active_count > 1 and length(state.community_cards) < 5 do
+        deal_community_cards(state, 5 - length(state.community_cards))
+      else
+        state
+      end
 
-      players ->
-        new_state =
-          if length(state.community_cards) < 5 do
-            deal_community_cards(state, 5 - length(state.community_cards))
-          else
-            state
-          end
-
-        winner_ids = find_winners(players, new_state.community_cards)
-        split_pot(new_state, winner_ids)
-    end
+    distribute_pots(new_state)
   end
 
   defp possible_new_hand(%__MODULE__{} = state) do
@@ -525,6 +499,7 @@ defmodule PokerMind.Engine.TableState do
 
     set_player_value(state, player.id, :state, new_state)
   end
+
   defp pay_pot(%__MODULE__{} = state, amount, winners) do
     count = length(winners)
     leftover = rem(amount, count)
@@ -550,5 +525,4 @@ defmodule PokerMind.Engine.TableState do
       PlayerState.add_chips(acc, Enum.at(winners, i), 1)
     end)
   end
-
 end

@@ -460,6 +460,8 @@ defmodule PokerMind.Engine.ActionsTest do
              player_id: starting_player_id
            }) ==
              {:error, {:invalid_action, "Action is not supported"}}
+  end
+
   test "all_in - short all-in (< highest_raise) does not re-open betting",
        %{state: init_state} do
     p1 = init_state.current_player_id
