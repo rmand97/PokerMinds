@@ -148,7 +148,7 @@ defmodule PokerMind.Engine.ActionsTest do
       Actions.apply_action(new_state, %{
         type: :call,
         player_id: next_player_id,
-        amount: init_state.highest_raise
+        amount: new_state.highest_raise
       })
 
     # check that the calling player is still :active_in_hand
@@ -157,15 +157,15 @@ defmodule PokerMind.Engine.ActionsTest do
              &(&1.id == next_player_id and &1.state == :active_in_hand)
            )
 
-    # pot size should be updated with the call amount
-    assert new_state.pot == 2 * init_state.big_blind_amount + init_state.highest_raise
+    # pot size: raise (2 * big_blind) + call matching that raise
+    assert new_state.pot == 2 * (2 * init_state.big_blind_amount)
 
     # check that next player has the correct remaining chips after the call
     next_player_remaining_chips =
       Enum.find(new_state.players, &(&1.id == next_player_id)).remaining_chips
 
-    # check that chips were deducted from next player stack
-    assert next_player_remaining_chips == starting_stack - init_state.highest_raise
+    # call matched the raise (2 * big_blind), so that amount was deducted
+    assert next_player_remaining_chips == starting_stack - 2 * init_state.big_blind_amount
   end
 
   test "Test of check apply_action next player logic", %{state: init_state} do
