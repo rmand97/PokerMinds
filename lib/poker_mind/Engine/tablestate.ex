@@ -267,12 +267,13 @@ defmodule PokerMind.Engine.TableState do
   def add_to_pot(%__MODULE__{} = state, player_id, amount)
       when is_integer(amount) and amount > 0 do
     amount_difference = amount - get_player(state, player_id).current_bet
+    player_contribution = get_player(state, player_id).total_contributed
 
     state
     |> set_player_value(
       player_id,
       :total_contributed,
-      get_player(state, player_id).total_contributed + amount_difference
+      player_contribution + amount_difference
     )
     |> PlayerState.deduct_chips(player_id, amount_difference)
     |> PlayerState.update_current_bet(player_id, amount)
@@ -434,18 +435,26 @@ defmodule PokerMind.Engine.TableState do
   defp determine_winners(%__MODULE__{} = state, eligible_ids) do
     community = translate_cards(state.community_cards)
 
+    # Build one {id, score} tuple per eligible player. Score is the value of the player's best hand.
+    # Equal hands produce equal scores, stronger hands produce larger scores
+    # Example result: scored = [{"A", 6783750}, {"B", 51234}, {"C", 51234}]
     scored =
       Enum.map(eligible_ids, fn id ->
         player = get_player(state, id)
         hole = translate_cards(player.current_hand)
+        # find best possible hand for player
         {_rank, best} = Poker.best_hand(hole, community)
+        # insert value of best hand into tuple for player
         {id, Poker.hand_value(best)}
       end)
 
-    top = scored |> Enum.map(&elem(&1, 1)) |> Enum.max()
+    # compare eligible players' best hands and find the highest score(s)
+    best_hand_score = scored |> Enum.map(fn t -> elem(t, 1) end) |> Enum.max()
 
+    # return list of player ids whose best hand matches the highest score
+    #  Output: ["B", "C"] for a tie, ["A"] for a clear winner
     scored
-    |> Enum.filter(fn {_, v} -> v == top end)
+    |> Enum.filter(fn {_, score} -> score == best_hand_score end)
     |> Enum.map(&elem(&1, 0))
   end
 
@@ -498,6 +507,24 @@ defmodule PokerMind.Engine.TableState do
         else: :active_in_hand
 
     set_player_value(state, player.id, :state, new_state)
+  end
+
+  def reset_has_acted(%__MODULE__{} = state) do
+    updated_players =
+      Enum.map(state.players, fn player ->
+        %{player | has_acted: false}
+      end)
+
+    %{state | players: updated_players}
+  end
+
+  def reset_current_bet(%__MODULE__{} = state) do
+    updated_players =
+      Enum.map(state.players, fn player ->
+        %{player | current_bet: 0}
+      end)
+
+    %{state | players: updated_players}
   end
 
   defp pay_pot(%__MODULE__{} = state, amount, winners) do
