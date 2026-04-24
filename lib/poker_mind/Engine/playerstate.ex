@@ -27,24 +27,6 @@ defmodule PokerMind.Engine.TableState.PlayerState do
     }
   end
 
-  def reset_has_acted(%TableState{} = state) do
-    updated_players =
-      Enum.map(state.players, fn player ->
-        %{player | has_acted: false}
-      end)
-
-    %{state | players: updated_players}
-  end
-
-  def reset_current_bet(%TableState{} = state) do
-    updated_players =
-      Enum.map(state.players, fn player ->
-        %{player | current_bet: 0}
-      end)
-
-    %{state | players: updated_players}
-  end
-
   def set_player_value(player, key, new_value) do
     Map.put(player, key, new_value)
   end
