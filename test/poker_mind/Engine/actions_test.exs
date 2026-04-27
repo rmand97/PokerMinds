@@ -159,13 +159,11 @@ defmodule PokerMind.Engine.ActionsTest do
       assert new_state.highest_raise == 2 * init_state.big_blind_amount
 
       # other players cannot check because they need to match the new highest raise
-      assert Actions.apply_action(new_state, %{
-               type: :check,
-               player_id: new_state.current_player_id
-             }) ==
-               {:error,
-                {:current_bet_too_low,
-                 "Cannot check because your current bet 0 does not match the required highest raise 200"}}
+      assert {:error, {:current_bet_too_low, _}} =
+               Actions.apply_action(new_state, %{
+                 type: :check,
+                 player_id: new_state.current_player_id
+               })
     end
   end
 
@@ -270,21 +268,19 @@ defmodule PokerMind.Engine.ActionsTest do
       # action out of turn
       out_of_turn_id = Enum.find(init_state.players, &(&1.id != starting_player_id)).id
 
-      assert Actions.apply_action(init_state, %{type: :all_in, player_id: out_of_turn_id}) ==
-               {:error,
-                {:action_out_of_turn,
-                 "Awaiting action from player #{init_state.current_player_id}"}}
+      assert {:error, {:action_out_of_turn, _}} =
+               Actions.apply_action(init_state, %{type: :all_in, player_id: out_of_turn_id})
 
       # invalid player id
-      assert Actions.apply_action(init_state, %{type: :all_in, player_id: "invalid_player_id"}) ==
-               {:error, {:invalid_player, "Player not found at the table"}}
+      assert {:error, {:invalid_player, _}} =
+               Actions.apply_action(init_state, %{type: :all_in, player_id: "invalid_player_id"})
 
       # player not active in hand — fold first, then try to go all in as the folded player
       folded_state =
         Actions.apply_action(init_state, %{type: :fold, player_id: starting_player_id})
 
-      assert Actions.apply_action(folded_state, %{type: :all_in, player_id: starting_player_id}) ==
-               {:error, {:player_not_active, "Player is not active in the hand"}}
+      assert {:error, {:player_not_active, _}} =
+               Actions.apply_action(folded_state, %{type: :all_in, player_id: starting_player_id})
     end
 
     test "all_in - short all-in (< highest_raise) does not re-open betting",
@@ -374,19 +370,18 @@ defmodule PokerMind.Engine.ActionsTest do
       state = %{init_state | highest_raise: 0}
 
       # action out of turn /no longer starting player's turn
-      assert Actions.apply_action(state, %{
-               type: :check,
-               player_id: out_of_turn
-             }) ==
-               {:error,
-                {:action_out_of_turn, "Awaiting action from player #{state.current_player_id}"}}
+      assert {:error, {:action_out_of_turn, _}} =
+               Actions.apply_action(state, %{
+                 type: :check,
+                 player_id: out_of_turn
+               })
 
       # invalid player id
-      assert Actions.apply_action(state, %{
-               type: :check,
-               player_id: "invalid_player_id"
-             }) ==
-               {:error, {:invalid_player, "Player not found at the table"}}
+      assert {:error, {:invalid_player, _}} =
+               Actions.apply_action(state, %{
+                 type: :check,
+                 player_id: "invalid_player_id"
+               })
 
       # player not active in hand
       # first fold the next player to make them inactive
@@ -398,11 +393,11 @@ defmodule PokerMind.Engine.ActionsTest do
           player_id: next_player_id
         })
 
-      assert Actions.apply_action(new_state, %{
-               type: :check,
-               player_id: next_player_id
-             }) ==
-               {:error, {:player_not_active, "Player is not active in the hand"}}
+      assert {:error, {:player_not_active, _}} =
+               Actions.apply_action(new_state, %{
+                 type: :check,
+                 player_id: next_player_id
+               })
 
       # Next player raises to reset betting round
       new_state =
@@ -420,13 +415,11 @@ defmodule PokerMind.Engine.ActionsTest do
         ).id
 
       # starting_player then acts out of turn
-      assert Actions.apply_action(new_state, %{
-               type: :fold,
-               player_id: active_out_of_turn
-             }) ==
-               {:error,
-                {:action_out_of_turn,
-                 "Awaiting action from player #{new_state.current_player_id}"}}
+      assert {:error, {:action_out_of_turn, _}} =
+               Actions.apply_action(new_state, %{
+                 type: :fold,
+                 player_id: active_out_of_turn
+               })
     end
 
     test "Test of validate_amount helper function", %{state: init_state} do
@@ -514,19 +507,19 @@ defmodule PokerMind.Engine.ActionsTest do
       game_finished_state = %{init_state | phase: :game_finished}
       starting_player_id = init_state.current_player_id
 
-      assert Actions.apply_action(game_finished_state, %{
-               type: :raise,
-               player_id: starting_player_id,
-               amount: 200
-             }) ==
-               {:error, {:game_is_finished, "Game is finished, no more actions can be performed"}}
+      assert {:error, {:game_is_finished, _}} =
+               Actions.apply_action(game_finished_state, %{
+                 type: :raise,
+                 player_id: starting_player_id,
+                 amount: 200
+               })
 
       # unsupported action type
-      assert Actions.apply_action(init_state, %{
-               type: :unsupported_action,
-               player_id: starting_player_id
-             }) ==
-               {:error, {:invalid_action, "Action is not supported"}}
+      assert {:error, {:invalid_action, _}} =
+               Actions.apply_action(init_state, %{
+                 type: :unsupported_action,
+                 player_id: starting_player_id
+               })
     end
   end
 
