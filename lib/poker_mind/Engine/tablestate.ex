@@ -296,7 +296,7 @@ defmodule PokerMind.Engine.TableState do
     players_still_in_hand = Enum.filter(players, &(&1.state in [:active_in_hand, :all_in]))
 
     levels =
-      still_in
+      players_still_in_hand
       |> Enum.map(& &1.total_contributed)
       |> Enum.uniq()
       |> Enum.sort()
@@ -309,11 +309,11 @@ defmodule PokerMind.Engine.TableState do
           end)
 
         eligible_player_ids =
-          still_in
+          players_still_in_hand
           |> Enum.filter(&(&1.total_contributed >= level))
           |> Enum.map(& &1.id)
 
-        {%{amount: amount, eligible_ids: eligible_ids}, level}
+        {%{amount: amount, eligible_ids: eligible_player_ids}, level}
       end)
 
     # Collapse single-eligible pots into refunds (uncontested middle/top layers).
