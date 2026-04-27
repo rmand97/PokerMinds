@@ -298,7 +298,8 @@ defmodule PokerMind.Engine.TableState do
     # Get distinct contribution layers among players still in hand, sorted ascending.
     # These will be the caps of each pot layer, starting from the smallest. For example, if
     # three players contributed 100, 200, and 500 chips, there will be three layers capped at
-    # 100, 200, and 500 chips respectively. The first layer includes all players, the second layer includes the two biggest contributors,
+    # 100, 200, and 500 chips respectively.
+    # The first layer includes all players, the second layer includes the two biggest contributors,
     # and the third layer includes only the biggest contributor
     # uniq is important because multiple players can have the same contribution, but that only creates one level/layer
     layers =
