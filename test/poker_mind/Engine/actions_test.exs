@@ -586,7 +586,7 @@ defmodule PokerMind.Engine.ActionsTest do
         end)
 
       assert final.phase == :flop
-      assert final.highest_raise == init_state.big_blind_amount
+      assert final.highest_raise == 0
       assert Enum.all?(final.players, &(&1.current_bet == 0))
       assert Enum.all?(final.players, &(not &1.has_acted))
 
