@@ -23,7 +23,8 @@ defmodule PokerMind.Engine.TableState do
     # bet to match
     :highest_raise,
     :big_blind_amount,
-    :winner
+    :winner,
+    :hands_played
   ]
 
   def new(id) when is_binary(id) do
@@ -34,7 +35,8 @@ defmodule PokerMind.Engine.TableState do
       players: [],
       pot: 0,
       deck: [],
-      community_cards: []
+      community_cards: [],
+      hands_played: 0
     }
   end
 
@@ -75,7 +77,6 @@ defmodule PokerMind.Engine.TableState do
     %__MODULE__{state | players: updated_players}
   end
 
-  # TODO: update with setting blinds and deducting chips from players
   defp set_blinds(%__MODULE__{} = state, new_table \\ true) when is_boolean(new_table) do
     new_state =
       if new_table do
@@ -85,7 +86,9 @@ defmodule PokerMind.Engine.TableState do
         advance_player(state, :small_blind_id, state.small_blind_id)
       end
 
-    big_blind = 100
+    base_blind = 100
+    increase_every = 10
+    big_blind = base_blind * 2 ** div(state.hands_played, increase_every)
 
     new_state
     |> Map.put(:highest_raise, big_blind)
@@ -510,6 +513,7 @@ defmodule PokerMind.Engine.TableState do
         end)
 
       new_state
+      |> Map.put(:hands_played, new_state.hands_played + 1)
       |> Map.put(:community_cards, [])
       |> new_deck()
       |> set_blinds(false)
