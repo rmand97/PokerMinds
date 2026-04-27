@@ -308,7 +308,7 @@ defmodule PokerMind.Engine.TableState do
             sum + max(0, min(p.total_contributed, level) - prev_level)
           end)
 
-        eligible_ids =
+        eligible_player_ids =
           still_in
           |> Enum.filter(&(&1.total_contributed >= level))
           |> Enum.map(& &1.id)
