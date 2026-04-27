@@ -528,7 +528,7 @@ defmodule PokerMind.Engine.TableState do
   end
 
   defp pay_pot(%__MODULE__{} = state, amount, winners) do
-    count = length(winners)
+    num_winners = length(winners)
     leftover_amount = rem(amount, count)
     share = div(amount - leftover, count)
 
