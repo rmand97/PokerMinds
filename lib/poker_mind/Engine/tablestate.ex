@@ -295,36 +295,45 @@ defmodule PokerMind.Engine.TableState do
   def build_pots(%__MODULE__{players: players}) do
     players_still_in_hand = Enum.filter(players, &(&1.state in [:active_in_hand, :all_in]))
 
-    levels =
+    # Get distinct contribution layers among players still in hand, sorted ascending.
+    # These will be the caps of each pot layer, starting from the smallest. For example, if
+    # three players contributed 100, 200, and 500 chips, there will be three layers capped at
+    # 100, 200, and 500 chips respectively. The first layer includes all players, the second layer includes the two biggest contributors,
+    # and the third layer includes only the biggest contributor
+    # uniq is important because multiple players can have the same contribution, but that only creates one level/layer
+    layers =
       players_still_in_hand
       |> Enum.map(& &1.total_contributed)
       |> Enum.uniq()
       |> Enum.sort()
 
     {raw_pots, _} =
-      Enum.map_reduce(levels, 0, fn level, prev_level ->
+      Enum.map_reduce(layers, 0, fn layer, prev_layer ->
         amount =
           Enum.reduce(players, 0, fn p, sum ->
-            sum + max(0, min(p.total_contributed, level) - prev_level)
+            sum + max(0, min(p.total_contributed, layer) - prev_layer)
           end)
 
         eligible_player_ids =
           players_still_in_hand
-          |> Enum.filter(&(&1.total_contributed >= level))
+          |> Enum.filter(&(&1.total_contributed >= layer))
           |> Enum.map(& &1.id)
 
-        {%{amount: amount, eligible_ids: eligible_player_ids}, level}
+        {%{amount: amount, eligible_ids: eligible_player_ids}, layer}
       end)
 
     # Collapse single-eligible pots into refunds (uncontested middle/top layers).
     {pots, refunds} =
       Enum.reduce(raw_pots, {[], []}, fn
+        # If no chips in this layer, skip it
         %{amount: 0}, acc ->
           acc
 
-        %{eligible_ids: [only]} = pot, {pots_acc, refunds_acc} ->
-          {pots_acc, [{only, pot.amount} | refunds_acc]}
+        # If only one eligible player, this layer is an uncontested pot and should be refunded, not paid out
+        %{eligible_ids: [only_player]} = pot, {pots_acc, refunds_acc} ->
+          {pots_acc, [{only_player, pot.amount} | refunds_acc]}
 
+        # Otherwise, this is a contested pot layer that should be paid out to the eligible players
         pot, {pots_acc, refunds_acc} ->
           {[pot | pots_acc], refunds_acc}
       end)
@@ -459,8 +468,10 @@ defmodule PokerMind.Engine.TableState do
   end
 
   defp handle_showdown(%__MODULE__{} = state) do
+    # If only one active player, skip straight to hand_finished without doing any card comparison or pot distribution
     active_count = Enum.count(state.players, &(&1.state in [:active_in_hand, :all_in]))
 
+    # If more than one active player, deal remaining community cards (if any)
     new_state =
       if active_count > 1 and length(state.community_cards) < 5 do
         deal_community_cards(state, 5 - length(state.community_cards))
@@ -468,6 +479,7 @@ defmodule PokerMind.Engine.TableState do
         state
       end
 
+    # and distribute pots based on hand strength
     distribute_pots(new_state)
   end
 
