@@ -267,16 +267,91 @@ defmodule PokerMind.Engine.TableState do
   def add_to_pot(%__MODULE__{} = state, player_id, amount)
       when is_integer(amount) and amount > 0 do
     amount_difference = amount - get_player(state, player_id).current_bet
+    player_contribution = get_player(state, player_id).total_contributed
 
     state
+    |> set_player_value(
+      player_id,
+      :total_contributed,
+      player_contribution + amount_difference
+    )
     |> PlayerState.deduct_chips(player_id, amount_difference)
     |> PlayerState.update_current_bet(player_id, amount)
     |> Map.put(:pot, state.pot + amount_difference)
   end
 
+  @doc """
+  Derives the pot structure at showdown from players' total contributions.
+
+  Returns `%{pots: [%{amount, eligible_ids}], refunds: [{player_id, amount}]}`.
+
+  - Each pot layer is capped at a distinct contribution level from players
+    still in the hand (active or all-in).
+  - A folded player's chips flow into the layers their contribution covers,
+    but they're never eligible to win any pot.
+  - A layer with only one eligible player (uncontested) is returned to that
+    player as a refund rather than paid out as a pot.
+  """
+  def build_pots(%__MODULE__{players: players}) do
+    players_still_in_hand = Enum.filter(players, &(&1.state in [:active_in_hand, :all_in]))
+
+    # Get distinct contribution layers among players still in hand, sorted ascending.
+    # These will be the caps of each pot layer, starting from the smallest. For example, if
+    # three players contributed 100, 200, and 500 chips, there will be three layers capped at
+    # 100, 200, and 500 chips respectively.
+    # The first layer includes all players, the second layer includes the two biggest contributors,
+    # and the third layer includes only the biggest contributor
+    # uniq is important because multiple players can have the same contribution, but that only creates one level/layer
+    layers =
+      players_still_in_hand
+      |> Enum.map(& &1.total_contributed)
+      |> Enum.uniq()
+      |> Enum.sort()
+
+    {raw_pots, _} =
+      Enum.map_reduce(layers, 0, fn layer, prev_layer ->
+        amount =
+          Enum.reduce(players, 0, fn p, sum ->
+            sum + max(0, min(p.total_contributed, layer) - prev_layer)
+          end)
+
+        eligible_player_ids =
+          players_still_in_hand
+          |> Enum.filter(&(&1.total_contributed >= layer))
+          |> Enum.map(& &1.id)
+
+        {%{amount: amount, eligible_ids: eligible_player_ids}, layer}
+      end)
+
+    # Collapse single-eligible pots into refunds (uncontested middle/top layers).
+    {pots, refunds} =
+      Enum.reduce(raw_pots, {[], []}, fn
+        # If no chips in this layer, skip it
+        %{amount: 0}, acc ->
+          acc
+
+        # If only one eligible player, this layer is an uncontested pot and should be refunded, not paid out
+        %{eligible_ids: [only_player]} = pot, {pots_acc, refunds_acc} ->
+          {pots_acc, [{only_player, pot.amount} | refunds_acc]}
+
+        # Otherwise, this is a contested pot layer that should be paid out to the eligible players
+        pot, {pots_acc, refunds_acc} ->
+          {[pot | pots_acc], refunds_acc}
+      end)
+
+    %{
+      pots: Enum.reverse(pots),
+      refunds: Enum.reverse(refunds)
+    }
+  end
+
   def update_highest_raise(%__MODULE__{} = state, amount)
       when is_integer(amount) and amount > 0 do
     Map.put(state, :highest_raise, amount)
+  end
+
+  def reset_highest_raise(%__MODULE__{} = state) do
+    Map.put(state, :highest_raise, state.big_blind_amount)
   end
 
   def compare_cards(rank1, rank2)
@@ -339,72 +414,74 @@ defmodule PokerMind.Engine.TableState do
     Poker.hand_compare(best_hand1, best_hand2)
   end
 
-  # TODO handle sidepot
-  def split_pot(%__MODULE__{} = state, winners) when is_list(winners) do
-    leftover_chips = rem(state.pot, length(winners))
-    winning_chips = div(state.pot - leftover_chips, length(winners))
+  @doc """
+  Settles the hand at showdown: derives pots via `build_pots/1`, refunds
+  uncalled chips to contributors, distributes each pot to its eligible
+  winner(s), and zeroes the running pot.
+  """
+  def distribute_pots(%__MODULE__{} = state) do
+    %{pots: pots, refunds: refunds} = build_pots(state)
 
-    # Distribute leftover chips one for each winner, starting with the first winning player
+    state
+    |> apply_refunds(refunds)
+    |> apply_pot_distribution(pots)
+    |> Map.put(:pot, 0)
+  end
+
+  defp apply_refunds(%__MODULE__{} = state, refunds) do
+    Enum.reduce(refunds, state, fn
+      {_player_id, 0}, acc -> acc
+      {player_id, amount}, acc -> PlayerState.add_chips(acc, player_id, amount)
+    end)
+  end
+
+  defp apply_pot_distribution(%__MODULE__{} = state, pots) do
+    Enum.reduce(pots, state, fn pot, acc ->
+      winners = determine_winners(acc, pot.eligible_ids)
+      pay_pot(acc, pot.amount, winners)
+    end)
+  end
+
+  defp determine_winners(%__MODULE__{} = state, eligible_ids) do
+    community = translate_cards(state.community_cards)
+
+    # Build one {id, score} tuple per eligible player. Score is the value of the player's best hand.
+    # Equal hands produce equal scores, stronger hands produce larger scores
+    # Example result: scored = [{"A", 6783750}, {"B", 51234}, {"C", 51234}]
+    scored =
+      Enum.map(eligible_ids, fn id ->
+        player = get_player(state, id)
+        hole = translate_cards(player.current_hand)
+        # find best possible hand for player
+        {_rank, best} = Poker.best_hand(hole, community)
+        # insert value of best hand into tuple for player
+        {id, Poker.hand_value(best)}
+      end)
+
+    # compare eligible players' best hands and find the highest score(s)
+    best_hand_score = scored |> Enum.map(fn t -> elem(t, 1) end) |> Enum.max()
+
+    # return list of player ids whose best hand matches the highest score
+    #  Output: ["B", "C"] for a tie, ["A"] for a clear winner
+    scored
+    |> Enum.filter(fn {_, score} -> score == best_hand_score end)
+    |> Enum.map(&elem(&1, 0))
+  end
+
+  defp handle_showdown(%__MODULE__{} = state) do
+    # If only one active player, skip straight to hand_finished without doing any card comparison or pot distribution
+    active_count = Enum.count(state.players, &(&1.state in [:active_in_hand, :all_in]))
+
+    # If more than one active player, deal remaining community cards (if any)
     new_state =
-      if leftover_chips > 0 do
-        Enum.reduce(0..(leftover_chips - 1), state, fn i, current_state ->
-          winner_id = Enum.at(winners, i)
-          PlayerState.add_chips(current_state, winner_id, 1)
-        end)
+      if active_count > 1 and length(state.community_cards) < 5 do
+        deal_community_cards(state, 5 - length(state.community_cards))
       else
         state
       end
 
-    # Distribute winnings to all winners
-    final_state =
-      Enum.reduce(winners, new_state, fn winner_id, current_state ->
-        PlayerState.add_chips(current_state, winner_id, winning_chips)
-      end)
-
-    Map.put(final_state, :pot, 0)
-  end
-
-  defp accumulate_winner(player, {_winners, nil}, _community_cards) do
-    {[player], player}
-  end
-
-  defp accumulate_winner(player, {winners, best}, community_cards) do
-    case compare_hands(player.current_hand, best.current_hand, community_cards) do
-      :gt -> {[player], player}
-      :lt -> {winners, best}
-      :eq -> {[player | winners], best}
-    end
-  end
-
-  defp find_winners(players, community_cards) do
-    {winners, _} =
-      Enum.reduce(players, {[], nil}, fn player, acc ->
-        accumulate_winner(player, acc, community_cards)
-      end)
-
-    Enum.map(winners, fn winner -> winner.id end)
-  end
-
-  # TODO handle sidepots
-  defp handle_showdown(%__MODULE__{} = state) do
-    active_players =
-      Enum.filter(state.players, fn player -> player.state in [:active_in_hand, :all_in] end)
-
-    case active_players do
-      [winner] ->
-        split_pot(state, [winner.id])
-
-      players ->
-        new_state =
-          if length(state.community_cards) < 5 do
-            deal_community_cards(state, 5 - length(state.community_cards))
-          else
-            state
-          end
-
-        winner_ids = find_winners(players, new_state.community_cards)
-        split_pot(new_state, winner_ids)
-    end
+    # and distribute pots based on hand strength
+    distribute_pots(new_state)
   end
 
   defp possible_new_hand(%__MODULE__{} = state) do
@@ -443,5 +520,49 @@ defmodule PokerMind.Engine.TableState do
         else: :active_in_hand
 
     set_player_value(state, player.id, :state, new_state)
+  end
+
+  def reset_has_acted(%__MODULE__{} = state) do
+    updated_players =
+      Enum.map(state.players, fn player ->
+        %{player | has_acted: false}
+      end)
+
+    %{state | players: updated_players}
+  end
+
+  def reset_current_bet(%__MODULE__{} = state) do
+    updated_players =
+      Enum.map(state.players, fn player ->
+        %{player | current_bet: 0}
+      end)
+
+    %{state | players: updated_players}
+  end
+
+  defp pay_pot(%__MODULE__{} = state, amount, winners) do
+    num_winners = length(winners)
+    leftover_amount = rem(amount, num_winners)
+    share = div(amount - leftover_amount, num_winners)
+
+    state
+    |> pay_equal_shares(winners, share)
+    |> pay_leftover_chips(winners, leftover_amount)
+  end
+
+  defp pay_equal_shares(state, _winners, 0), do: state
+
+  defp pay_equal_shares(state, winners, share) do
+    Enum.reduce(winners, state, fn winner_id, acc ->
+      PlayerState.add_chips(acc, winner_id, share)
+    end)
+  end
+
+  defp pay_leftover_chips(state, _winners, 0), do: state
+
+  defp pay_leftover_chips(state, winners, leftover) do
+    Enum.reduce(0..(leftover - 1), state, fn i, acc ->
+      PlayerState.add_chips(acc, Enum.at(winners, i), 1)
+    end)
   end
 end

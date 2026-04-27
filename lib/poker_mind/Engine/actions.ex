@@ -1,6 +1,5 @@
 defmodule PokerMind.Engine.Actions do
   alias PokerMind.Engine.TableState
-  alias PokerMind.Engine.TableState.PlayerState
 
   def apply_action(%TableState{phase: :game_finished}, _action) do
     {:error, {:game_is_finished, "Game is finished, no more actions can be performed"}}
@@ -61,12 +60,26 @@ defmodule PokerMind.Engine.Actions do
       state
       |> TableState.set_player_value(player_id, :state, :all_in)
       |> TableState.add_to_pot(player_id, all_in_amount)
+      |> over_the_top_all_in(all_in_amount)
       |> advance_player_turn(:all_in)
     end
   end
 
   def apply_action(_state, _action) do
     {:error, {:invalid_action, "Action is not supported"}}
+  end
+
+  # Over-the-top all-in re-opens action: updates highest_raise and clears
+  # has_acted so remaining active players must respond. Short or matching
+  # all-ins (amount <= highest_raise) leave those unchanged.
+  defp over_the_top_all_in(%TableState{} = state, all_in_amount) do
+    if all_in_amount > state.highest_raise do
+      state
+      |> TableState.update_highest_raise(all_in_amount)
+      |> TableState.reset_has_acted()
+    else
+      state
+    end
   end
 
   defp validate_turn(state, player_id) when is_binary(player_id) do
@@ -132,7 +145,9 @@ defmodule PokerMind.Engine.Actions do
       next_phase = TableState.next_phase(state)
 
       state
-      |> PlayerState.reset_has_acted()
+      |> TableState.reset_has_acted()
+      |> TableState.reset_current_bet()
+      |> TableState.reset_highest_raise()
       |> TableState.advance_phase(next_phase)
       |> TableState.set_current_player_for_phase()
     else
