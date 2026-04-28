@@ -172,6 +172,7 @@ defmodule PokerMind.Engine.ActionsTest do
     test "re-raise action, resets all other players to has_acted == false", %{state: init_state} do
       # Perform raise action with valid amount
       starting_player_id = init_state.current_player_id
+
       new_state =
         Actions.apply_action(init_state, %{
           type: :raise,
@@ -181,10 +182,14 @@ defmodule PokerMind.Engine.ActionsTest do
 
       # Only the starting player has acted
       assert TableState.get_player(new_state, starting_player_id).has_acted
-      assert Enum.all?(new_state.players, fn p -> p.id == starting_player_id or not p.has_acted end)
+
+      assert Enum.all?(new_state.players, fn p ->
+               p.id == starting_player_id or not p.has_acted
+             end)
 
       # Next player performs a raise (re-raise)
       next_player_id = new_state.current_player_id
+
       final_state =
         Actions.apply_action(new_state, %{
           type: :raise,
