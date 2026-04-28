@@ -384,12 +384,11 @@ defmodule PokerMind.Engine.TableStateTest do
       # small blind is not :active_in_hand, the fallback used to pass the
       # player struct into find_next_active_player/2, which is guarded by
       # is_binary/1 — raising FunctionClauseError.
-      state =
+      result =
         state
         |> Map.put(:phase, :flop)
         |> TableState.set_player_value(state.small_blind_id, :state, :inactive_in_hand)
-
-      result = TableState.set_current_player_for_phase(state)
+        |> TableState.set_current_player_for_phase()
 
       assert result.current_player_id != state.small_blind_id
 
