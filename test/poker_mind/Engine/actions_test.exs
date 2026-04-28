@@ -186,6 +186,39 @@ defmodule PokerMind.Engine.ActionsTest do
                  player_id: new_state.current_player_id
                })
     end
+
+    test "re-raise action, resets all other players to has_acted == false", %{state: init_state} do
+      # Perform raise action with valid amount
+      starting_player_id = init_state.current_player_id
+
+      new_state =
+        Actions.apply_action(init_state, %{
+          type: :raise,
+          player_id: starting_player_id,
+          amount: 2 * init_state.highest_raise
+        })
+
+      # Only the starting player has acted
+      assert TableState.get_player(new_state, starting_player_id).has_acted
+
+      assert Enum.all?(new_state.players, fn p ->
+               p.id == starting_player_id or not p.has_acted
+             end)
+
+      # Next player performs a raise (re-raise)
+      next_player_id = new_state.current_player_id
+
+      final_state =
+        Actions.apply_action(new_state, %{
+          type: :raise,
+          player_id: next_player_id,
+          amount: 4 * init_state.highest_raise
+        })
+
+      # Only the next player has acted (starting player resets has acted)
+      assert TableState.get_player(final_state, next_player_id).has_acted
+      assert Enum.all?(final_state.players, fn p -> p.id == next_player_id or not p.has_acted end)
+    end
   end
 
   describe "apply_action :call" do
@@ -203,14 +236,14 @@ defmodule PokerMind.Engine.ActionsTest do
           amount: 2 * init_state.highest_raise
         })
 
-      # next player calls
+      # next player calls — must match the new highest_raise
       next_player_id = new_state.current_player_id
 
       new_state =
         Actions.apply_action(new_state, %{
           type: :call,
           player_id: next_player_id,
-          amount: init_state.highest_raise
+          amount: 2 * init_state.highest_raise
         })
 
       # check that the calling player is still :active_in_hand
@@ -218,14 +251,54 @@ defmodule PokerMind.Engine.ActionsTest do
 
       # pot size should be updated with the call amount
       assert new_state.pot ==
-               init_state.pot + 2 * init_state.big_blind_amount + init_state.highest_raise
+               init_state.pot + 2 * init_state.big_blind_amount + 2 * init_state.highest_raise
 
       # check that next player has the correct remaining chips after the call
       next_player_remaining_chips =
         TableState.get_player(new_state, next_player_id).remaining_chips
 
       # check that chips were deducted from next player stack
-      assert next_player_remaining_chips == starting_stack - init_state.highest_raise
+      assert next_player_remaining_chips == starting_stack - 2 * init_state.highest_raise
+    end
+
+    test "call rejects amount less than highest_raise", %{state: init_state} do
+      starting_player_id = init_state.current_player_id
+
+      raised_state =
+        Actions.apply_action(init_state, %{
+          type: :raise,
+          player_id: starting_player_id,
+          amount: 2 * init_state.highest_raise
+        })
+
+      next_player_id = raised_state.current_player_id
+
+      assert {:error, {:invalid_call_amount, _}} =
+               Actions.apply_action(raised_state, %{
+                 type: :call,
+                 player_id: next_player_id,
+                 amount: init_state.highest_raise
+               })
+    end
+
+    test "call rejects amount greater than highest_raise", %{state: init_state} do
+      starting_player_id = init_state.current_player_id
+
+      raised_state =
+        Actions.apply_action(init_state, %{
+          type: :raise,
+          player_id: starting_player_id,
+          amount: 2 * init_state.highest_raise
+        })
+
+      next_player_id = raised_state.current_player_id
+
+      assert {:error, {:invalid_call_amount, _}} =
+               Actions.apply_action(raised_state, %{
+                 type: :call,
+                 player_id: next_player_id,
+                 amount: 3 * init_state.highest_raise
+               })
     end
   end
 

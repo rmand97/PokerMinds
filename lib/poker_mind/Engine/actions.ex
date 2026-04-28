@@ -12,6 +12,7 @@ defmodule PokerMind.Engine.Actions do
       state
       |> TableState.add_to_pot(player_id, amount)
       |> TableState.update_highest_raise(amount)
+      |> TableState.reset_has_acted()
       |> advance_player_turn(:raise)
     end
   end
@@ -29,6 +30,7 @@ defmodule PokerMind.Engine.Actions do
   def apply_action(%TableState{} = state, %{type: :call, player_id: player_id, amount: amount})
       when is_binary(player_id) do
     with :ok <- validate_turn(state, player_id),
+         :ok <- validate_call(state, amount),
          :ok <- validate_amount(state, player_id, amount) do
       state
       |> TableState.add_to_pot(player_id, amount)
@@ -132,6 +134,12 @@ defmodule PokerMind.Engine.Actions do
     else
       {:error,
        {:cannot_fold_last_player, "Cannot fold when no other players are still in the hand"}}
+  defp validate_call(%TableState{highest_raise: highest_raise}, amount) when is_integer(amount) do
+    if amount == highest_raise do
+      :ok
+    else
+      {:error,
+       {:invalid_call_amount, "Call amount #{amount} must match highest raise #{highest_raise}"}}
     end
   end
 
