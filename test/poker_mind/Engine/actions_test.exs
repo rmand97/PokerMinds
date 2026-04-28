@@ -494,14 +494,14 @@ defmodule PokerMind.Engine.ActionsTest do
       assert Actions.apply_action(init_state, %{
                type: :raise,
                player_id: starting_player_id,
-               amount: 2 * init_state.highest_raise
+               amount: 2 * init_state.big_blind_amount
              }) == {:error, "Current_bet = new raise amount - did we already perform this bet?"}
 
       assert %TableState{} =
                Actions.apply_action(init_state, %{
                  type: :raise,
                  player_id: starting_player_id,
-                 amount: 8 * init_state.highest_raise
+                 amount: 8 * init_state.big_blind_amount
                })
     end
   end
@@ -586,7 +586,7 @@ defmodule PokerMind.Engine.ActionsTest do
         end)
 
       assert final.phase == :flop
-      assert final.highest_raise == init_state.big_blind_amount
+      assert final.highest_raise == 0
       assert Enum.all?(final.players, &(&1.current_bet == 0))
       assert Enum.all?(final.players, &(not &1.has_acted))
 

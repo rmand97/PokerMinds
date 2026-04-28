@@ -683,9 +683,9 @@ defmodule PokerMind.Engine.TableStateTest do
   end
 
   describe " reset of betting round helpers" do
-    test "reset_highest_raise/1 - resets highest_raise to big_blind_amount", %{state: state} do
+    test "reset_highest_raise/1 - resets highest_raise to 0", %{state: state} do
       state = Map.put(state, :highest_raise, 500)
-      assert TableState.reset_highest_raise(state).highest_raise == state.big_blind_amount
+      assert TableState.reset_highest_raise(state).highest_raise == 0
     end
 
     test "reset_current_bet/1 - zeros current_bet for all players", %{state: state} do

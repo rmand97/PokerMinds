@@ -359,7 +359,7 @@ defmodule PokerMind.Engine.TableState do
   end
 
   def reset_highest_raise(%__MODULE__{} = state) do
-    Map.put(state, :highest_raise, state.big_blind_amount)
+    Map.put(state, :highest_raise, 0)
   end
 
   def compare_cards(rank1, rank2)
