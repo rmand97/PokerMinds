@@ -110,16 +110,18 @@ defmodule PokerMind.Engine.Actions do
     player = TableState.get_player(state, player_id)
 
     cond do
-      amount < player.remaining_chips and amount > 0 ->
+      amount < player.remaining_chips + player.current_bet and amount > 0 ->
         :ok
 
-      amount == player.remaining_chips ->
+      amount == player.remaining_chips + player.current_bet ->
         {:error,
-         "Action requires all remaining chips - if you want to go all in use the all_in action type"}
+         {:use_all_in_action,
+          "Action requires all remaining chips - if you want to go all in use the all_in action type"}}
 
       true ->
         {:error,
-         "Action requires more chips than player has remaining - if you want to go all in use the all_in action type"}
+         {:not_enough_chips,
+          "Action requires more chips than player has remaining - if you want to go all in use the all_in action type"}}
     end
   end
 
@@ -151,16 +153,18 @@ defmodule PokerMind.Engine.Actions do
 
     cond do
       player.current_bet == amount ->
-        {:error, "Current_bet = new raise amount - did we already perform this bet?"}
+        {:error,
+         {:already_performed_raise,
+          "Current_bet = new raise amount - did we already perform this bet?"}}
 
       amount < 2 * state.big_blind_amount ->
-        {:error, "Not a valid raise - assume bet size too small"}
+        {:error, {:invalid_raise, "Not a valid raise - assume bet size too small"}}
 
       amount >= 2 * state.big_blind_amount ->
         :ok
 
       true ->
-        {:error, "Not a valid action"}
+        {:error, {:invalid_action, "Not a valid action"}}
     end
   end
 
