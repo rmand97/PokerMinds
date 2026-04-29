@@ -36,38 +36,39 @@ defmodule PokerMind.Engine.IntegrationTest do
         {9, :diamonds}
       ]
 
-      gameplay = state
-      # Hand 1
-      |> set_player_hand(player1_id, [{11, :spades}, {11, :diamonds}])
-      |> set_player_hand(player2_id, [{9, :clubs}, {8, :clubs}])
-      |> raise_(player1_id, 300)
-      |> call(player2_id, 300)
-      |> raise_(player1_id, 400)
-      |> call(player2_id, 400)
-      |> raise_(player1_id, 600)
-      |> call(player2_id, 600)
-      |> set_community_cards(community_cards_hand_1)
-      |> check(player1_id)
-      |> check(player2_id)
-      # Hand 2
-      |> set_player_hand(player1_id, [{1, :diamonds}, {12, :diamonds}])
-      |> set_player_hand(player2_id, [{13, :clubs}, {9, :clubs}])
-      |> raise_(player2_id, 500)
-      |> raise_(player1_id, 1_500)
-      |> call(player2_id, 1_500)
-      |> set_community_cards(community_cards_hand_2)
-      |> check(player2_id)
-      |> raise_(player1_id, 2_000)
-      |> all_in(player2_id)
-      |> call(player1_id, 7200)
-      # Hand 3
-      |> set_player_hand(player1_id, [{1, :spades}, {7, :hearts}])
-      |> set_player_hand(player2_id, [{13, :diamonds}, {12, :clubs}])
-      |> set_community_cards(community_cards_hand_3)
-      |> raise_(player1_id, 500)
-      |> raise_(player2_id, 1_500)
-      |> all_in(player1_id)
-      |> call(player2_id, 2_600)
+      gameplay =
+        state
+        # Hand 1
+        |> set_player_hand(player1_id, [{11, :spades}, {11, :diamonds}])
+        |> set_player_hand(player2_id, [{9, :clubs}, {8, :clubs}])
+        |> raise_(player1_id, 300)
+        |> call(player2_id, 300)
+        |> raise_(player1_id, 400)
+        |> call(player2_id, 400)
+        |> raise_(player1_id, 600)
+        |> call(player2_id, 600)
+        |> set_community_cards(community_cards_hand_1)
+        |> check(player1_id)
+        |> check(player2_id)
+        # Hand 2
+        |> set_player_hand(player1_id, [{1, :diamonds}, {12, :diamonds}])
+        |> set_player_hand(player2_id, [{13, :clubs}, {9, :clubs}])
+        |> raise_(player2_id, 500)
+        |> raise_(player1_id, 1_500)
+        |> call(player2_id, 1_500)
+        |> set_community_cards(community_cards_hand_2)
+        |> check(player2_id)
+        |> raise_(player1_id, 2_000)
+        |> all_in(player2_id)
+        |> call(player1_id, 7200)
+        # Hand 3
+        |> set_player_hand(player1_id, [{1, :spades}, {7, :hearts}])
+        |> set_player_hand(player2_id, [{13, :diamonds}, {12, :clubs}])
+        |> set_community_cards(community_cards_hand_3)
+        |> raise_(player1_id, 500)
+        |> raise_(player2_id, 1_500)
+        |> all_in(player1_id)
+        |> call(player2_id, 2_600)
 
       # Game has ended, P2 wins
       assert gameplay.phase == :game_finished
