@@ -99,4 +99,79 @@ defmodule PokerMindWeb.Schemas do
       required: [:player_id, :game_id, :action]
     })
   end
+
+  defmodule StartSuiteRequest do
+    require OpenApiSpex
+
+    OpenApiSpex.schema(%{
+      title: "Start Suite Parameters",
+      description: "Required parameters for starting a new suite",
+      type: :object,
+      properties: %{
+        players: %Schema{
+          type: :array,
+          items: %Schema{type: :string, description: "Player ID"},
+          description: "List of player ID's"
+        },
+        num_games: %Schema{type: :integer, description: "Number of games to start for suite"}
+      },
+      required: [:players]
+    })
+  end
+
+  defmodule StartSuiteResponse do
+    require OpenApiSpex
+
+    OpenApiSpex.schema(%{
+      title: "Start Suite Response",
+      description: "Response for start a new suite",
+      type: :object,
+      properties: %{
+        suite_id: %Schema{
+          type: :string,
+          description: "ID of the start suite"
+        }
+      },
+      required: [:suite_id]
+    })
+  end
+
+  defmodule NotFound do
+    require OpenApiSpex
+
+    OpenApiSpex.schema(%{
+      title: "NotFound",
+      type: :object,
+      properties: %{
+        error: %OpenApiSpex.Schema{type: :string, example: "Not found"}
+      },
+      required: [:error]
+    })
+  end
+
+  defmodule BadRequest do
+    require OpenApiSpex
+
+    OpenApiSpex.schema(%{
+      title: "BadRequest",
+      type: :object,
+      properties: %{
+        error: %OpenApiSpex.Schema{type: :string, example: "Bad request"}
+      },
+      required: [:error]
+    })
+  end
+
+  defmodule InternalServerError do
+    require OpenApiSpex
+
+    OpenApiSpex.schema(%{
+      title: "InternalServerError",
+      type: :object,
+      properties: %{
+        error: %OpenApiSpex.Schema{type: :string, example: "Internal server error"}
+      },
+      required: [:error]
+    })
+  end
 end
