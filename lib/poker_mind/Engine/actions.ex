@@ -110,10 +110,10 @@ defmodule PokerMind.Engine.Actions do
     player = TableState.get_player(state, player_id)
 
     cond do
-      amount < player.remaining_chips and amount > 0 ->
+      amount < player.remaining_chips + player.current_bet and amount > 0 ->
         :ok
 
-      amount == player.remaining_chips ->
+      amount == player.remaining_chips + player.current_bet ->
         {:error,
          "Action requires all remaining chips - if you want to go all in use the all_in action type"}
 

@@ -557,8 +557,36 @@ defmodule PokerMind.Engine.ActionsTest do
              }) ==
                {:error,
                 "Action requires all remaining chips - if you want to go all in use the all_in action type"}
+    end
 
-      # test call
+    test "validate_amount/3 - remaining_chips and current_bet are both included in amount", %{
+      state: init_state
+    } do
+      starting_player_id = init_state.current_player_id
+
+      updated_state =
+        init_state
+        |> TableState.set_player_value(starting_player_id, :current_bet, 1000)
+        |> TableState.set_player_value(starting_player_id, :remaining_chips, 1000)
+        |> Map.put(:highest_raise, 2000)
+
+      # Raising with 1500 is valid even though remaining chips for starting player is 1000
+      # as it already has 1000 chips as current bet
+      assert Actions.apply_action(updated_state, %{
+               type: :raise,
+               player_id: starting_player_id,
+               amount: 1500
+             })
+
+      # Calling with 2000 is valid even though remaining chips for starting player is 1000
+      # as it already has 1000 chips as current bet. Error is do to the player going all_in.
+      assert Actions.apply_action(updated_state, %{
+               type: :call,
+               player_id: starting_player_id,
+               amount: updated_state.highest_raise
+             }) ==
+               {:error,
+                "Action requires all remaining chips - if you want to go all in use the all_in action type"}
     end
 
     test "Test of validate_raise helper function", %{state: init_state} do
