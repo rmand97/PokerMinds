@@ -127,6 +127,22 @@ defmodule PokerMind.Engine.Match.GameControllerTest do
            }
   end
 
+  test "GameController suites produces a SuitesResponse", %{conn: conn} do
+    suite1_id = UUID.uuid4()
+    players1 = ["rolf", "stine"]
+
+    {:ok, _pid, ^suite1_id} = MatchSupport.start_match_suite!(suite1_id, players1)
+
+    on_exit(fn ->
+      MatchSupervisor.close_match_suite(suite1_id)
+    end)
+
+    json = get(conn, "/api/suites") |> json_response(200)
+
+    api_spec = PokerMindWeb.ApiSpec.spec()
+    assert_schema(json, "SuitesResponse", api_spec)
+  end
+
   test "GameController next_games produces a GameResponse", %{conn: conn} do
     suite_id = UUID.uuid4()
     num_games = 10
