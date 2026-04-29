@@ -3,7 +3,7 @@ defmodule PokerMind.Engine.IntegrationTest do
   alias PokerMind.Engine.TableState
   alias PokerMind.Engine.Actions
 
-  describe "Game 1 (2 players)" do
+  describe "Game 1 - Re-raises (2 players)" do
     test "play 3 hands and verify final outcome" do
       id = UUID.uuid4()
       state = TableState.init(TableState.new(id), ["stine", "rolf"])
@@ -73,6 +73,38 @@ defmodule PokerMind.Engine.IntegrationTest do
       # Game has ended, P2 wins
       assert gameplay.phase == :game_finished
       assert gameplay.winner == player2_id
+    end
+  end
+
+  describe "Game 2 - Instant Victory (2 players)" do
+    test "instant victory - player 1 wins in a single hand" do
+      id = UUID.uuid4()
+      state = TableState.init(TableState.new(id), ["stine", "rolf"])
+
+      # set player 1 to small_blind
+      player1_id = state.small_blind_id
+      player2_id = Enum.find(state.players, fn player -> player.id != player1_id end).id
+
+      community_cards = [
+        {1, :hearts},
+        {7, :clubs},
+        {2, :hearts},
+        {11, :spades},
+        {9, :clubs}
+      ]
+
+      gameplay =
+        state
+        # Hand 1
+        |> set_player_hand(player1_id, [{1, :clubs}, {1, :spades}])
+        |> set_player_hand(player2_id, [{13, :diamonds}, {12, :spades}])
+        |> set_community_cards(community_cards)
+        |> all_in(player1_id)
+        |> all_in(player2_id)
+
+      # Game has ended, P1 wins
+      assert gameplay.phase == :game_finished
+      assert gameplay.winner == player1_id
     end
   end
 
