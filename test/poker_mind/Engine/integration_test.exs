@@ -3,7 +3,7 @@ defmodule PokerMind.Engine.IntegrationTest do
   alias PokerMind.Engine.TableState
   alias PokerMind.Engine.Actions
 
-  describe "Game 1 (2 players)" do
+  describe "Game 1 - Re-raises (2 players)" do
     test "play 3 hands and verify final outcome" do
       id = UUID.uuid4()
       state = TableState.init(TableState.new(id), ["stine", "rolf"])
@@ -76,56 +76,90 @@ defmodule PokerMind.Engine.IntegrationTest do
     end
   end
 
-  defp raise_(state, player_id, amount) do
-    Actions.apply_action(state, %{type: :raise, player_id: player_id, amount: amount})
+  describe "Game 2 - Instant Victory (2 players)" do
+    test "instant victory - player 1 wins in a single hand" do
+      id = UUID.uuid4()
+      state = TableState.init(TableState.new(id), ["stine", "rolf"])
+
+      # set player 1 to small_blind
+      player1_id = state.small_blind_id
+      player2_id = Enum.find(state.players, fn player -> player.id != player1_id end).id
+
+      community_cards = [
+        {1, :hearts},
+        {7, :clubs},
+        {2, :hearts},
+        {11, :spades},
+        {9, :clubs}
+      ]
+
+      gameplay =
+        state
+        # Hand 1
+        |> set_player_hand(player1_id, [{1, :clubs}, {1, :spades}])
+        |> set_player_hand(player2_id, [{13, :diamonds}, {12, :spades}])
+        |> set_community_cards(community_cards)
+        |> all_in(player1_id)
+        |> all_in(player2_id)
+
+      # Game has ended, P1 wins
+      assert gameplay.phase == :game_finished
+      assert gameplay.winner == player1_id
+    end
   end
 
-  defp call(state, player_id, amount) do
-    Actions.apply_action(state, %{type: :call, player_id: player_id, amount: amount})
-  end
+  describe "Helper functions" do
+    defp raise_(state, player_id, amount) do
+      Actions.apply_action(state, %{type: :raise, player_id: player_id, amount: amount})
+    end
 
-  defp check(state, player_id) do
-    Actions.apply_action(state, %{type: :check, player_id: player_id})
-  end
+    defp call(state, player_id, amount) do
+      Actions.apply_action(state, %{type: :call, player_id: player_id, amount: amount})
+    end
 
-  defp all_in(state, player_id) do
-    Actions.apply_action(state, %{type: :all_in, player_id: player_id})
-  end
+    defp check(state, player_id) do
+      Actions.apply_action(state, %{type: :check, player_id: player_id})
+    end
 
-  defp withdraw_cards_from_deck(state, cards) do
-    Map.update!(state, :deck, fn deck ->
-      Enum.reject(deck, fn card ->
-        Enum.any?(cards, fn {rank, suit} ->
-          card.rank == rank and card.suit == suit
+    defp all_in(state, player_id) do
+      Actions.apply_action(state, %{type: :all_in, player_id: player_id})
+    end
+
+    defp withdraw_cards_from_deck(state, cards) do
+      Map.update!(state, :deck, fn deck ->
+        Enum.reject(deck, fn card ->
+          Enum.any?(cards, fn {rank, suit} ->
+            card.rank == rank and card.suit == suit
+          end)
         end)
       end)
-    end)
-  end
+    end
 
-  defp set_player_hand(state, player_id, cards)
-       when is_binary(player_id) and is_list(cards) do
-    player = TableState.get_player(state, player_id)
-    current_cards = player.current_hand
+    defp set_player_hand(state, player_id, cards)
+         when is_binary(player_id) and is_list(cards) do
+      player = TableState.get_player(state, player_id)
+      current_cards = player.current_hand
 
-    state
-    |> Map.put(:deck, state.deck ++ current_cards)
-    |> withdraw_cards_from_deck(cards)
-    |> then(fn state ->
-      mapped_cards = Enum.map(cards, fn {rank, suit} -> %{rank: rank, suit: suit} end)
-      TableState.set_player_value(state, player_id, :current_hand, mapped_cards)
-    end)
-  end
+      state
+      |> Map.put(:deck, state.deck ++ current_cards)
+      |> withdraw_cards_from_deck(cards)
+      |> then(fn state ->
+        mapped_cards = Enum.map(cards, fn {rank, suit} -> %{rank: rank, suit: suit} end)
+        TableState.set_player_value(state, player_id, :current_hand, mapped_cards)
+      end)
+    end
 
-  defp set_community_cards(state, cards)
-       when is_list(cards) do
-    current_cards = state.community_cards
+    defp set_community_cards(state, cards)
+         when is_list(cards) do
+      current_cards = state.community_cards
 
-    state
-    |> Map.put(:deck, state.deck ++ current_cards)
-    |> withdraw_cards_from_deck(cards)
-    |> then(fn state ->
-      mapped_cards = Enum.map(cards, fn {rank, suit} -> %{rank: rank, suit: suit} end)
-      Map.put(state, :community_cards, mapped_cards)
-    end)
+      state
+      |> Map.put(:deck, state.deck ++ current_cards)
+      |> withdraw_cards_from_deck(cards)
+      |> then(fn state ->
+        mapped_cards = Enum.map(cards, fn {rank, suit} -> %{rank: rank, suit: suit} end)
+        Map.put(state, :community_cards, mapped_cards)
+      end)
+    end
   end
 end
