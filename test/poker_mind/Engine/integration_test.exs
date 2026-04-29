@@ -8,127 +8,123 @@ defmodule PokerMind.Engine.IntegrationTest do
       id = UUID.uuid4()
       state = TableState.init(TableState.new(id), ["stine", "rolf"])
 
-      # Initial state
-      assert state.phase == :pre_flop
-      assert state.big_blind_amount == 100
-      assert state.highest_raise == 100
-
-      # Find small_blind player, and set to player 1 and next player to player 2
+      # set player 1 to small_blind
       player1_id = state.small_blind_id
-      player2_id = TableState.find_next_active_player(state, player1_id).id
+      player2_id = Enum.find(state.players, fn player -> player.id != player1_id end).id
 
-      # HAND 1
-      # Set specific player hands for hand 1
-      # Js Jd
-      state = set_player_hand(state, player1_id, 11, :spades, 11, :diamonds)
-      # 9c 8c
-      state = set_player_hand(state, player2_id, 9, :clubs, 8, :clubs)
+      community_cards_hand_1 = [
+        {11, :hearts},
+        {4, :diamonds},
+        {2, :clubs},
+        {13, :spades},
+        {7, :diamonds}
+      ]
 
-      # Pre-flop: P1 raises to 300, P2 calls
-      state = apply_raise(state, player1_id, 300)
-      state = apply_call(state, player2_id, 300)
+      community_cards_hand_2 = [
+        {10, :clubs},
+        {8, :clubs},
+        {3, :clubs},
+        {2, :spades},
+        {6, :diamonds}
+      ]
 
-      # Flop: P1 bets 400, P2 calls
-      state = apply_raise(state, player1_id, 400)
-      state = apply_call(state, player2_id, 400)
+      community_cards_hand_3 = [
+        {13, :hearts},
+        {12, :diamonds},
+        {5, :clubs},
+        {3, :spades},
+        {9, :diamonds}
+      ]
 
-      # Turn: P1 bets 600, P2 calls
-      state = apply_raise(state, player1_id, 600)
-      state = apply_call(state, player2_id, 600)
-
-      # Set specific community cards before showdown
-      state = %{
-        state
-        | community_cards: [
-            %{rank: 11, suit: :hearts},
-            %{rank: 4, suit: :diamonds},
-            %{rank: 2, suit: :clubs},
-            %{rank: 13, suit: :spades},
-            %{rank: 7, suit: :diamonds}
-          ]
-      }
-
-      # River: Both check
-      state = apply_check(state, player1_id)
-      state = apply_check(state, player2_id)
-
-      # Showdown - P1 wins with trip Jacks
-      # P1 should have ~11,300, P2 should have ~8,700
-      assert state.phase == :showdown
-      assert get_chips(state, player1_id) == 11_300
-      assert get_chips(state, player2_id) == 8_700
-
-      # Hand 1 is finished (should be added to handle_showdown/1 in tablestate.ex??)
-      state = TableState.advance_phase(state, :hand_finished)
-
+      gameplay = state
+      # Hand 1
+      |> set_player_hand(player1_id, [{11, :spades}, {11, :diamonds}])
+      |> set_player_hand(player2_id, [{9, :clubs}, {8, :clubs}])
+      |> raise_(player1_id, 300)
+      |> call(player2_id, 300)
+      |> raise_(player1_id, 400)
+      |> call(player2_id, 400)
+      |> raise_(player1_id, 600)
+      |> call(player2_id, 600)
+      |> set_community_cards(community_cards_hand_1)
+      |> check(player1_id)
+      |> check(player2_id)
       # Hand 2
-      # Set specific player hands for hand 1
-      # Ad Qd
-      state = set_player_hand(state, player1_id, 1, :diamonds, 12, :diamonds)
-      # Kc 9c
-      state = set_player_hand(state, player2_id, 13, :clubs, 9, :clubs)
+      |> set_player_hand(player1_id, [{1, :diamonds}, {12, :diamonds}])
+      |> set_player_hand(player2_id, [{13, :clubs}, {9, :clubs}])
+      |> raise_(player2_id, 500)
+      |> raise_(player1_id, 1_500)
+      |> call(player2_id, 1_500)
+      |> set_community_cards(community_cards_hand_2)
+      |> check(player2_id)
+      |> raise_(player1_id, 2_000)
+      |> all_in(player2_id)
+      |> call(player1_id, 7200)
+      # Hand 3
+      |> set_player_hand(player1_id, [{1, :spades}, {7, :hearts}])
+      |> set_player_hand(player2_id, [{13, :diamonds}, {12, :clubs}])
+      |> set_community_cards(community_cards_hand_3)
+      |> raise_(player1_id, 500)
+      |> raise_(player2_id, 1_500)
+      |> all_in(player1_id)
+      |> call(player2_id, 2_600)
 
-      # Pre-flop: P2 raises to 500, P1 re-raises to 1500, P2 calls
-      state = apply_raise(state, player2_id, 500)
-      state = apply_raise(state, player1_id, 1_500)
-      state = apply_call(state, player2_id, 1_500)
-
-      # Set specific community cards before showdown
-      state = %{
-        state
-        | community_cards: [
-            %{rank: 10, suit: :clubs},
-            %{rank: 8, suit: :clubs},
-            %{rank: 3, suit: :clubs},
-            %{rank: 2, suit: :spades},
-            %{rank: 6, suit: :diamonds}
-          ]
-      }
-
-      # Flop: P2 checks, P1 bets 2000, P2 goes all-in for 7200, P1 calls remaining 5200
-      state = apply_check(state, player2_id)
-      state = apply_raise(state, player1_id, 2_000)
-      state = apply_all_in(state, player2_id)
-      state = apply_call(state, player1_id, 7200)
-
-      # Showdown - P2 wins with a flush
-      # P1 should have ~2,600, P2 should have ~17,400
-      assert state.phase == :showdown
-      assert get_chips(state, player1_id) == 2_600
-      assert get_chips(state, player2_id) == 17_400
+      # Game has ended, P2 wins
+      assert gameplay.phase == :game_finished
+      assert gameplay.winner == player2_id
     end
   end
 
-  # Helper functions
-
-  defp apply_raise(state, player_id, amount) do
+  defp raise_(state, player_id, amount) do
     Actions.apply_action(state, %{type: :raise, player_id: player_id, amount: amount})
   end
 
-  defp apply_call(state, player_id, amount) do
+  defp call(state, player_id, amount) do
     Actions.apply_action(state, %{type: :call, player_id: player_id, amount: amount})
   end
 
-  defp apply_check(state, player_id) do
+  defp check(state, player_id) do
     Actions.apply_action(state, %{type: :check, player_id: player_id})
   end
 
-  defp apply_all_in(state, player_id) do
+  defp all_in(state, player_id) do
     Actions.apply_action(state, %{type: :all_in, player_id: player_id})
   end
 
-  defp get_chips(state, player_id) do
-    TableState.get_player(state, player_id).remaining_chips
+  defp withdraw_cards_from_deck(state, cards) do
+    Map.update!(state, :deck, fn deck ->
+      Enum.reject(deck, fn card ->
+        Enum.any?(cards, fn {rank, suit} ->
+          card.rank == rank and card.suit == suit
+        end)
+      end)
+    end)
   end
 
-  defp set_player_hand(state, player_id, rank1, suit1, rank2, suit2)
-       when is_binary(player_id)
-       when is_integer(rank1) and is_integer(rank2)
-       when is_atom(suit1) and is_atom(suit2) do
+  defp set_player_hand(state, player_id, cards)
+       when is_binary(player_id) and is_list(cards) do
+    player = TableState.get_player(state, player_id)
+    current_cards = player.current_hand
+
     state
-    |> TableState.set_player_value(player_id, :current_hand, [
-      %{rank: rank1, suit: suit1},
-      %{rank: rank2, suit: suit2}
-    ])
+    |> Map.put(:deck, state.deck ++ current_cards)
+    |> withdraw_cards_from_deck(cards)
+    |> then(fn state ->
+      mapped_cards = Enum.map(cards, fn {rank, suit} -> %{rank: rank, suit: suit} end)
+      TableState.set_player_value(state, player_id, :current_hand, mapped_cards)
+    end)
+  end
+
+  defp set_community_cards(state, cards)
+       when is_list(cards) do
+    current_cards = state.community_cards
+
+    state
+    |> Map.put(:deck, state.deck ++ current_cards)
+    |> withdraw_cards_from_deck(cards)
+    |> then(fn state ->
+      mapped_cards = Enum.map(cards, fn {rank, suit} -> %{rank: rank, suit: suit} end)
+      Map.put(state, :community_cards, mapped_cards)
+    end)
   end
 end

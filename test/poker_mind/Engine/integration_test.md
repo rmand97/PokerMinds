@@ -79,7 +79,7 @@
 - **River:** 9d  
 
 ### Action
-- Pre-flop: P1 raises to 500, P2 re-raises to 1500, P1 goes all-in for 2100, P2 calls  
+- Pre-flop: P1 raises to 500, P2 re-raises to 1500, P1 goes all-in for 2600, P2 calls  
 
 ### Showdown
 - **P2 wins** with two pair  
