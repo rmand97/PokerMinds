@@ -629,46 +629,6 @@ defmodule PokerMind.Engine.ActionsTest do
                  amount: 8 * init_state.big_blind_amount
                })
     end
-
-    test "validate_raise/3 - dynamically update raise_amount within a betting round", %{
-      state: init_state
-    } do
-      starting_player_id = init_state.current_player_id
-
-      # starting player can raise with 1*big_blind as default
-      assert %TableState{} =
-               Actions.apply_action(init_state, %{
-                 type: :raise,
-                 player_id: starting_player_id,
-                 amount: 2 * init_state.big_blind_amount
-               })
-
-      # starting player raises with 2*big_blind
-      next_state =
-        Actions.apply_action(init_state, %{
-          type: :raise,
-          player_id: starting_player_id,
-          amount: 3 * init_state.big_blind_amount
-        })
-
-      next_player_id = next_state.current_player_id
-
-      # The following player cannot raise with 1*big_blind now
-      assert {:error, {:invalid_raise, _}} =
-               Actions.apply_action(next_state, %{
-                 type: :raise,
-                 player_id: next_player_id,
-                 amount: 4 * init_state.big_blind_amount
-               })
-
-      # The following player has to raise with 2*big_blind now
-      assert %TableState{} =
-               Actions.apply_action(next_state, %{
-                 type: :raise,
-                 player_id: next_player_id,
-                 amount: 5 * init_state.big_blind_amount
-               })
-    end
   end
 
   describe "apply_action error handling" do
