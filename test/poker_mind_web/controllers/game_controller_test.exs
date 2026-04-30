@@ -150,7 +150,7 @@ defmodule PokerMind.Engine.Match.GameControllerTest do
     assert %{players: ^players, games: games} = Coordinator.get_state(coordinator_id)
     assert length(Map.keys(games)) == num_games
   end
-  
+
   test "GameController suites produces a SuitesResponse", %{conn: conn} do
     suite1_id = UUID.uuid4()
     players1 = ["rolf", "stine"]
